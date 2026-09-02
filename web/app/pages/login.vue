@@ -35,6 +35,10 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 const {
+  $csrfFetch,
+} = useNuxtApp()
+
+const {
   fetch: refreshSession,
 } = useUserSession()
 
@@ -44,22 +48,29 @@ async function submitLogin() {
   isSubmitting.value = true
 
   try {
-    const response = await $fetch<{
-      user: {
-        id: number
-        username: string
-        displayName: string
-        email: string | null
-        roles: string[]
-      }
-    }>('/api/auth/login', {
-      method: 'POST',
-
-      body: {
-        username: username.value,
-        password: password.value,
-      },
-    })
+    const response =
+      await $csrfFetch<{
+        user: {
+          id: number
+          username: string
+          displayName: string
+          email: string | null
+          roles: string[]
+        }
+      }>(
+        '/api/auth/login',
+        {
+          method: 'POST',
+        
+          body: {
+            username:
+              username.value,
+          
+            password:
+              password.value,
+          },
+        },
+      )
 
     // Login changed the cookie, so refresh
     // nuxt-auth-utils' frontend session state.
@@ -160,19 +171,65 @@ async function submitLogin() {
       redirect,
     )
   }
-  catch (error: any) {
-    const statusCode =
-      error?.statusCode
-      ?? error?.response?.status
+  catch (error: unknown) {
+    let statusCode:
+      number | undefined
 
-    const statusMessage =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
+    let statusMessage:
+      string | undefined
 
     if (
-      statusCode === 401
-      || statusMessage
-        === 'Invalid credentials'
+      error
+      && typeof error === 'object'
+    ) {
+      if (
+        'statusCode' in error
+        && typeof error.statusCode
+          === 'number'
+      ) {
+        statusCode =
+          error.statusCode
+      }
+
+      if (
+        'statusMessage' in error
+        && typeof error.statusMessage
+          === 'string'
+      ) {
+        statusMessage =
+          error.statusMessage
+      }
+
+      if (
+        'data' in error
+        && error.data
+        && typeof error.data
+          === 'object'
+        && 'statusMessage' in error.data
+        && typeof error.data.statusMessage
+          === 'string'
+      ) {
+        statusMessage =
+          error.data.statusMessage
+      }
+
+      if (
+        'response' in error
+        && error.response
+        && typeof error.response
+          === 'object'
+        && 'status' in error.response
+        && typeof error.response.status
+          === 'number'
+      ) {
+        statusCode =
+          error.response.status
+      }
+    }
+
+    if (
+      statusMessage
+      === 'Invalid credentials'
     ) {
       errorMessage.value =
         'Invalid username or password.'
@@ -181,9 +238,6 @@ async function submitLogin() {
       errorMessage.value =
         'Unable to sign in. Please try again.'
     }
-  }
-  finally {
-    isSubmitting.value = false
   }
 }
 

@@ -468,3 +468,79 @@ export async function countTelemetryEventsByName(
       ?? 0,
   )
 }
+
+export async function getTransactionRollbackTotal() {
+  const db =
+    useDb()
+
+  const result =
+    await db.execute(
+      sql`
+        SELECT
+          COALESCE(
+            xact_rollback,
+            0
+          )::bigint
+            AS "transactionRollbackTotal"
+
+        FROM pg_stat_database
+
+        WHERE datname =
+          current_database()
+
+        LIMIT 1
+      `,
+    )
+
+  const row =
+    result.rows[0] as
+      | {
+          transactionRollbackTotal:
+            | string
+            | number
+        }
+      | undefined
+
+  return Number(
+    row?.transactionRollbackTotal
+      ?? 0,
+  )
+}
+
+export async function getDeadlockTotal() {
+  const db =
+    useDb()
+
+  const result =
+    await db.execute(
+      sql`
+        SELECT
+          COALESCE(
+            deadlocks,
+            0
+          )::bigint
+            AS "deadlockTotal"
+
+        FROM pg_stat_database
+
+        WHERE datname =
+          current_database()
+
+        LIMIT 1
+      `,
+    )
+
+  const row =
+    result.rows[0] as
+      | {
+          deadlockTotal:
+            | string
+            | number
+        }
+      | undefined
+
+  return Number(
+    row?.deadlockTotal
+      ?? 0,
+  )
+}

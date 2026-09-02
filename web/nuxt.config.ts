@@ -55,6 +55,41 @@ export default defineNuxtConfig({
     },
   },
 
+      security: {
+        csrf: true,
+      },
+
+    routeRules: {
+      '/**': {
+        csurf: false,
+      },
+    
+      '/login': {
+        csurf: {
+          methodsToProtect: [
+            'POST',
+          ],
+        },
+      },
+    
+      '/api/auth/login': {
+        csurf: {
+          methodsToProtect: [
+            'POST',
+          ],
+        },
+      
+        security: {
+          rateLimiter: {
+            tokensPerInterval: 10,
+            interval: 60_000,
+            headers: true,
+            throwError: true,
+          },
+        },
+      },
+    },
+
   nitro: {
     experimental: {
       tasks: true,

@@ -1,3 +1,5 @@
+
+
 import {
   countActiveUsers,
   countFailedRequestLogs,
@@ -6,7 +8,17 @@ import {
   findRecentRequestLogs,
   getRequestDurationStats,
   insertTelemetryEvent,
+  getDeadlockTotal,
+  getTransactionRollbackTotal,
 } from './repository'
+
+import {
+  getDbConnectionStats,
+  getDbConnectionWaitStats,
+  getDbQueryCount,
+  getDbQueryDurationStats,
+  getSlowQueryTotal,
+} from '#server/utils/db'
 
 import type {
   InsertTelemetryEventInput,
@@ -158,6 +170,84 @@ export async function getApplicationTelemetry() {
   }
 }
 
+export async function getDatabaseTelemetry() {
+  const dbQueryCount =
+    getDbQueryCount()
+
+  const dbQueryDurationStats =
+    getDbQueryDurationStats()
+
+  const dbConnectionStats =
+    getDbConnectionStats()
+
+  const dbConnectionWaitStats =
+    getDbConnectionWaitStats()
+
+  const slowQueryTotal =
+    getSlowQueryTotal()
+
+  const transactionRollbackTotal =
+    await getTransactionRollbackTotal()
+
+  const deadlockTotal =
+    await getDeadlockTotal()
+
+  return {
+    db_query_count:
+      dbQueryCount,
+
+    db_query_duration_ms: {
+      average:
+        Number(
+          dbQueryDurationStats.averageMs.toFixed(
+            2,
+          ),
+        ),
+
+      min:
+        dbQueryDurationStats.minMs,
+
+      max:
+        dbQueryDurationStats.maxMs,
+    },
+
+    db_connection_count: {
+      total:
+        dbConnectionStats.total,
+
+      idle:
+        dbConnectionStats.idle,
+
+      waiting:
+        dbConnectionStats.waiting,
+    },
+
+    db_connection_wait_ms: {
+      average:
+        Number(
+          dbConnectionWaitStats.averageMs.toFixed(
+            2,
+          ),
+        ),
+
+      min:
+        dbConnectionWaitStats.minMs,
+
+      max:
+        dbConnectionWaitStats.maxMs,
+    },
+
+    slow_query_total:
+      slowQueryTotal,
+
+    transaction_rollback_total:
+      transactionRollbackTotal,
+
+    deadlock_total:
+      deadlockTotal,
+  }
+}
+
 export async function recordTelemetryEvent(
   input: InsertTelemetryEventInput,
 ) {
@@ -205,5 +295,49 @@ export async function recordTelemetryEvent(
     )
 
     return false
+  }
+}
+
+export async function getSecurityTelemetry() {
+  const loginSuccessTotal =
+    await countTelemetryEventsByName(
+      'security.login.success',
+    )
+
+  const loginFailureTotal =
+    await countTelemetryEventsByName(
+      'security.login.failure',
+    )
+
+  const authorizationDeniedTotal =
+    await countTelemetryEventsByName(
+      'security.authorization.denied',
+    )
+
+  const rateLimitTriggeredTotal =
+    await countTelemetryEventsByName(
+      'security.rate_limit.triggered',
+    )
+
+  const csrfFailureTotal =
+    await countTelemetryEventsByName(
+      'security.csrf.failure',
+    )
+
+  return {
+    login_success_total:
+      loginSuccessTotal,
+
+    login_failure_total:
+      loginFailureTotal,
+
+    authorization_denied_total:
+      authorizationDeniedTotal,
+
+    rate_limit_triggered_total:
+      rateLimitTriggeredTotal,
+
+    csrf_failure_total:
+      csrfFailureTotal,
   }
 }

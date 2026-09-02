@@ -1,8 +1,14 @@
 import { z } from 'zod'
 import { authenticateUser } from '#server/domains/authentication/service'
 import { createAuthSession } from '#server/domains/authentication/session'
-import { read } from 'node:fs'
-import { parse } from 'node:path'
+
+import {
+  recordTelemetryEvent,
+} from '#server/domains/observability/service'
+
+import {
+  getBrewHubRequestContext,
+} from '#server/utils/request-context'
 
 const bodySchema = z.object({
     username: z
@@ -36,13 +42,55 @@ export default defineEventHandler(async (event) => {
     )
 
     if (!user) {
-        throw createError({
-            status: 400,
-            statusMessage: 'Invalid credentials',
-        })
+      const requestContext =
+        getBrewHubRequestContext(
+          event,
+        )
+    
+      await recordTelemetryEvent({
+        eventName:
+          'security.login.failure',
+    
+        requestId:
+          requestContext.requestId,
+    
+        traceId:
+          requestContext.traceId,
+    
+        result:
+          'failed',
+      })
+    
+      throw createError({
+        statusCode: 400,
+        statusMessage:
+          'Invalid credentials',
+      })
     }
 
     await createAuthSession(event, user.id)
+
+    const requestContext =
+      getBrewHubRequestContext(
+        event,
+      )
+    
+    await recordTelemetryEvent({
+      eventName:
+        'security.login.success',
+    
+      requestId:
+        requestContext.requestId,
+    
+      traceId:
+        requestContext.traceId,
+    
+      userId:
+        user.id,
+    
+      result:
+        'success',
+    })
 
     return {
         message: 'Login successful', user,
