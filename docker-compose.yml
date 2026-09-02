@@ -1,0 +1,43 @@
+name: brewhub-cafe
+
+services:
+  db:
+    image: postgres:17
+    container_name: brewhub-db
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ}
+
+    ports:
+      - "${POSTGRES_HOST_PORT}:5432"
+
+    volumes:
+      - brewhub_postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - brewhub-network
+
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+      ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  brewhub_postgres_data:
+    name: brewhub_postgres_data
+
+networks:
+  brewhub-network:
+    name: brewhub-network
+    driver: bridge

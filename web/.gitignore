@@ -1,0 +1,59 @@
+# ==================================================
+# Environment variables / secrets
+# ==================================================
+.env
+.env.*
+!.env.example
+
+# Credentials / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ==================================================
+# Dependencies
+# ==================================================
+node_modules/
+vendor/
+
+# ==================================================
+# Nuxt / Node generated output
+# ==================================================
+.nuxt/
+.output/
+dist/
+build/
+coverage/
+.cache/
+
+# ==================================================
+# Logs / temporary files
+# ==================================================
+*.log
+logs/
+*.tmp
+*.temp
+
+# ==================================================
+# Database backups / exports
+# Keep normal .sql migrations and schema files
+# ==================================================
+*.dump
+*.backup
+*.bak
+*.sql.gz
+backups/
+database/backups/
+
+# Local database storage
+pgdata/
+postgres-data/
+
+# ==================================================
+# IDE / operating system
+# ==================================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
