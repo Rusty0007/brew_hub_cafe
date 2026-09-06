@@ -644,7 +644,7 @@ const accountLabel = computed(() => {
               class="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-brew-200"
             >
               <img
-                src="/images/developer/formal.jpg"
+                src="/images/developer/Formal.jpg"
                 alt="BrewHub Cafe developer"
                 class="aspect-4/5 w-full object-cover object-top"
               >
