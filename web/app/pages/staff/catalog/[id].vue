@@ -186,7 +186,7 @@ saving.value = true
       to="/staff/catalog"
       class="text-sm font-medium text-brew-500 hover:text-brew-800"
     >
-      â† Catalog Management
+      &larr; Catalog Management
     </NuxtLink>
 
     <div

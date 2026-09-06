@@ -539,7 +539,7 @@ async function simulateDatabaseFailure() {
             hover:text-brew-900
           "
         >
-          â† Back to Recent Orders
+          &larr; Back to Recent Orders
         </NuxtLink>
 
         <p

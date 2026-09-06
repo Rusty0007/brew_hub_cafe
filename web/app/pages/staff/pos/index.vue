@@ -738,7 +738,7 @@ function startNewPosOrder() {
             hover:text-brew-900
           "
         >
-          â† Back to Cashier Workspace
+          &larr; Back to Cashier Workspace
         </NuxtLink>
 
         <p

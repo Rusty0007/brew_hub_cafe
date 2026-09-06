@@ -82,7 +82,7 @@ const architectureHighlights = [
 
       <div class="order-1 flex justify-center lg:order-2">
         <div
-          class="relative w-full max-w-md overflow-hidden rounded-4x1 bg-white shadow-xl ring-1 ring-stone-200"
+          class="relative w-full max-w-md overflow-hidden rounded-4xl bg-white shadow-xl ring-1 ring-stone-200"
         >
           <img
             src="/images/developer/Formal.jpg"
