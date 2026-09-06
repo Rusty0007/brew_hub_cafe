@@ -632,7 +632,7 @@ const accountLabel = computed(() => {
     <!-- DEVELOPER -->
 
       <section
-        id="#developer"
+        id="developer"
         class="border-t border-brew-200 bg-brew-50"
       >
         <div

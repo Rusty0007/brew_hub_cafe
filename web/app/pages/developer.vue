@@ -85,7 +85,7 @@ const architectureHighlights = [
           class="relative w-full max-w-md overflow-hidden rounded-4x1 bg-white shadow-xl ring-1 ring-stone-200"
         >
           <img
-            src="/images/developer/formal.jpg"
+            src="/images/developer/Formal.jpg"
             alt="BrewHub Cafe developer portrait"
             class="aspect-4/5 h-full w-full object-cover object-top"
           >
