@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 definePageMeta({
   middleware: [
     'auth',
@@ -539,7 +539,7 @@ async function simulateDatabaseFailure() {
             hover:text-brew-900
           "
         >
-          â† Back to Recent Orders
+          â† Back to Recent Orders
         </NuxtLink>
 
         <p

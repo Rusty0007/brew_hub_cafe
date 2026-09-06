@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 
 const {
   $csrfFetch,
@@ -738,7 +738,7 @@ function startNewPosOrder() {
             hover:text-brew-900
           "
         >
-          â† Back to Cashier Workspace
+          â† Back to Cashier Workspace
         </NuxtLink>
 
         <p

@@ -228,15 +228,19 @@ async function logout() {
 
     <footer class="border-t border-brew-200/70">
       <div
-        class="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-8 text-sm text-brew-500 sm:flex-row sm:items-center sm:justify-between lg:px-8"
+        class="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-8 text-sm text-brew-500 sm:flex-row sm:items-center sm:justify-between lg:px-8"
       >
         <p>
           BrewHub Cafe
         </p>
-
-        <p>
-          Ordering & Inventory Management System
-        </p>
+      
+        <div
+          class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-5"
+        >
+          <p>
+            Ordering & Inventory Management System
+          </p>
+        </div>
       </div>
     </footer>
   </div>

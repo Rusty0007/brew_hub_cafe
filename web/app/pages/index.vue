@@ -145,6 +145,13 @@ const accountLabel = computed(() => {
             >
               Visit
             </a>
+
+            <a
+              href="#developer"
+              class="text-brew-700 transition hover:text-brew-950"
+            >
+              Developer
+            </a>
           </nav>
 
           <!-- STAFF CTA -->
@@ -621,6 +628,71 @@ const accountLabel = computed(() => {
         </div>
       </div>
     </section>
+
+    <!-- DEVELOPER -->
+
+      <section
+        id="#developer"
+        class="border-t border-brew-200 bg-brew-50"
+      >
+        <div
+          class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2 lg:px-8 lg:py-24"
+        >
+          <!-- Developer photo -->
+          <div class="flex justify-center md:justify-start">
+            <div
+              class="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-brew-200"
+            >
+              <img
+                src="/images/developer/formal.jpg"
+                alt="BrewHub Cafe developer"
+                class="aspect-4/5 w-full object-cover object-top"
+              >
+            </div>
+          </div>
+
+          <!-- Developer information -->
+          <div>
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.22em] text-brew-500"
+            >
+              Behind BrewHub
+            </p>
+
+            <h2
+              class="mt-5 text-3xl font-semibold tracking-tight text-brew-950 sm:text-4xl md:text-5xl"
+            >
+              Meet the Developer
+            </h2>
+
+            <p
+              class="mt-6 max-w-xl text-lg leading-8 text-brew-600"
+            >
+              BrewHub Cafe was designed and developed as a modern cafe
+              management system combining ordering, inventory, payments,
+              reporting, security, observability, and reliable transaction
+              processing.
+            </p>
+
+            <div class="mt-7">
+              <p class="text-xl font-semibold text-brew-950">
+                RUSTY LLOYD ABANG
+              </p>
+
+              <p class="mt-1 text-sm text-brew-500">
+                Full-Stack Developer · System Architecture Project
+              </p>
+            </div>
+
+            <NuxtLink
+              to="/developer"
+              class="mt-8 inline-flex min-h-11 items-center rounded-xl bg-brew-800 px-7 py-4 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-brew-900"
+            >
+              View Developer Profile
+            </NuxtLink>
+          </div>
+        </div>
+      </section>
 
     <!-- FOOTER -->
     <footer

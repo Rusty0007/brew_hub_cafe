@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 definePageMeta({
   middleware: [
     'auth',
@@ -186,7 +186,7 @@ saving.value = true
       to="/staff/catalog"
       class="text-sm font-medium text-brew-500 hover:text-brew-800"
     >
-      â† Catalog Management
+      â† Catalog Management
     </NuxtLink>
 
     <div
