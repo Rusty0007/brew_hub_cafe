@@ -171,7 +171,7 @@ async function submitLogin() {
       redirect,
     )
   }
-  catch (error: unknown) {
+    catch (error: unknown) {
     let statusCode:
       number | undefined
 
@@ -229,7 +229,8 @@ async function submitLogin() {
 
     if (
       statusMessage
-      === 'Invalid credentials'
+      === 'Invalid username or password'
+      || statusCode === 400
     ) {
       errorMessage.value =
         'Invalid username or password.'
@@ -239,17 +240,20 @@ async function submitLogin() {
         'Unable to sign in. Please try again.'
     }
   }
+  finally {
+    isSubmitting.value = false
+  }
 }
 
 </script>
 
 <template>
   <section
-    class="flex min-h-[calc(100vh-10rem)] items-center justify-center px-6 py-16"
+    class="flex min-h-[calc(100dvh-10rem)] items-center justify-center px-4 py-8 sm:px-6 sm:py-16"
   >
     <div class="w-full max-w-md">
       <div
-        class="rounded-4xl border border-brew-200 bg-white p-8 shadow-[0_24px_80px_rgba(74,45,28,0.08)] sm:p-10"
+        class="rounded-4xl border border-brew-200 bg-white p-4 shadow-[0_24px_80px_rgba(74,45,28,0.08)] sm:p-10"
       >
         <!-- Brand icon -->
         <div

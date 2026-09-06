@@ -189,7 +189,7 @@ function nextPage() {
       class="border-b border-brew-200 bg-white"
     >
       <div
-        class="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-14"
+        class="mx-auto max-w-7xl px-4 sm:px-6 py-12 lg:px-8 lg:py-14"
       >
         <div
           class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
@@ -202,7 +202,7 @@ function nextPage() {
             </p>
 
             <h1
-              class="mt-3 text-4xl font-semibold tracking-tight text-brew-950 sm:text-5xl"
+              class="mt-3 text-3xl font-semibold tracking-tight text-brew-950 sm:text-5xl"
             >
               Find your favorite.
             </h1>
@@ -228,7 +228,7 @@ function nextPage() {
 
     <!-- FILTERS + PRODUCTS -->
     <section
-      class="mx-auto max-w-7xl px-6 py-10 lg:px-8"
+      class="mx-auto max-w-7xl px-4 sm:px-6 py-10 lg:px-8"
     >
       <!-- FILTER PANEL -->
       <div
@@ -377,7 +377,7 @@ function nextPage() {
         <!-- Error -->
         <div
           v-else-if="productsError"
-          class="rounded-3xl border border-red-200 bg-red-50 p-10 text-center text-sm text-red-700"
+          class="rounded-3xl border border-red-200 bg-red-50 p-4 sm:p-10 text-center text-sm text-red-700"
         >
           Unable to load products.
         </div>

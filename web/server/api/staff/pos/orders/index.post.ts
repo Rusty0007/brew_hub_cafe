@@ -8,8 +8,13 @@ import {
 } from '#server/domains/ordering/service'
 
 import {
+  recordCheckoutStage,
   recordTelemetryEvent,
 } from '#server/domains/observability/service'
+
+import {
+  startPerformanceTimer,
+} from '#server/domains/observability/performance'
 
 import {
   getBrewHubRequestContext,
@@ -38,56 +43,56 @@ export default defineEventHandler(
       getBrewHubRequestContext(
         event,
       )
-    
+
     logInfo(
       'checkout.start',
       {
         requestId:
           checkoutContext.requestId,
-      
+
         traceId:
           checkoutContext.traceId,
-      
+
         userId:
           staff.id,
-      
+
         method:
           'POST',
-      
+
         path:
           '/api/staff/pos/orders',
-      
+
         source:
           'POS',
-      
+
         result:
           'started',
       },
     )
-    
+
     void recordTelemetryEvent({
       eventName:
         'checkout.start',
-    
+
       requestId:
         checkoutContext.requestId,
-    
+
       traceId:
         checkoutContext.traceId,
-    
+
       userId:
         staff.id,
-    
+
       source:
         'POS',
-    
+
       result:
         'started',
-    
+
       metadata: {
         method:
           'POST',
-      
+
         path:
           '/api/staff/pos/orders',
       },
@@ -116,6 +121,9 @@ export default defineEventHandler(
       })
     }
 
+    const orderCreatePerformanceTimer =
+      startPerformanceTimer()
+
     /*
      * The Ordering service obtains
      * authoritative product prices
@@ -126,6 +134,47 @@ export default defineEventHandler(
         staff.id,
         parsed.data,
       )
+
+    const orderCreateDurationMs =
+      orderCreatePerformanceTimer
+      .elapsedMs()
+
+    await recordCheckoutStage({
+      stage:
+        'order.create',
+
+      durationMs:
+        orderCreateDurationMs,
+
+      requestId:
+        checkoutContext.requestId,
+
+      traceId:
+        checkoutContext.traceId,
+
+      userId:
+        staff.id,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'POS',
+
+      orderType:
+        parsed.data.orderType,
+
+      result:
+        'success',
+
+      metadata: {
+        itemCount:
+          parsed.data.items.length,
+      },
+    })
 
     return {
       message:

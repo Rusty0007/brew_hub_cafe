@@ -34,12 +34,16 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  if (process.env.NODE_ENV === 'production') {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Not Found',
-    })
-  }
+  if (
+  process.env.NODE_ENV
+  !== 'development'
+) {
+  throw createError({
+    statusCode: 404,
+    statusMessage:
+      'Not Found',
+  })
+}
 
   const parsed = bodySchema.safeParse(
     await readBody(event),

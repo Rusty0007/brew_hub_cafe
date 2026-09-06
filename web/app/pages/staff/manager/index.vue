@@ -34,6 +34,10 @@ definePageMeta({
       </p>
     </div>
 
+    <NuxtLink to="/staff/profile" class="mt-5 inline-flex min-h-11 items-center rounded-xl border border-brew-200 bg-white px-4 py-2 text-sm font-semibold text-brew-800">My staff profile</NuxtLink>
+
+    <DashboardRoleDashboard role="manager" />
+
     <!-- Workspace cards -->
         <!-- Workspace cards -->
     <div
@@ -42,7 +46,7 @@ definePageMeta({
       <!-- Inventory -->
       <NuxtLink
         to="/staff/inventory"
-        class="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        class="group rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"
@@ -87,7 +91,7 @@ definePageMeta({
       <!-- Catalog -->
       <NuxtLink
         to="/staff/catalog"
-        class="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        class="group rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"
@@ -132,7 +136,7 @@ definePageMeta({
       <!-- POS -->
       <NuxtLink
         to="/staff/pos"
-        class="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        class="group rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"
@@ -176,7 +180,7 @@ definePageMeta({
       <!-- Recent Orders -->
       <NuxtLink
         to="/staff/orders"
-        class="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        class="group rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"
@@ -220,7 +224,7 @@ definePageMeta({
       <!-- Reports -->
       <NuxtLink
         to="/staff/manager/reports"
-        class="group rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        class="group rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"

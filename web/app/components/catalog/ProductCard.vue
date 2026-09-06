@@ -22,6 +22,10 @@ const props = withDefaults(
 
 const cart = useCartStore()
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 const showQuickView = ref(false)
 const recentlyAdded = ref(false)
 
@@ -84,23 +88,93 @@ function closeQuickView() {
   showQuickView.value = false
 }
 
-function addToCart() {
+async function addToCart() {
+  const startedAtMs =
+    performance.now()
+
   cart.addProduct(
     props.product,
   )
 
+  /*
+   * Allow Pinia's cart subscription to
+   * run so persistCart() and synchronous
+   * localStorage persistence are included
+   * in the Add Item measurement.
+   */
+  await nextTick()
+
+  const durationMs =
+    Number(
+      (
+        performance.now()
+        - startedAtMs
+      ).toFixed(
+        2,
+      ),
+    )
+
+  /*
+   * The telemetry request itself is
+   * intentionally outside the measured
+   * Add Item duration.
+   */
+  void $csrfFetch(
+    '/api/observability/client-performance',
+    {
+      method: 'POST',
+
+      body: {
+        operation:
+          'ordering.add_item',
+
+        durationMs,
+
+        source:
+          'CUSTOMER',
+
+        result:
+          'success',
+
+        metadata: {
+          productId:
+            props.product.id,
+
+          persistence:
+            'localStorage',
+        },
+      },
+    },
+  )
+    .catch(
+      () => {
+        /*
+         * Observability must never make
+         * Add to Cart fail for the user.
+         */
+      },
+    )
+
+  /*
+   * Visual feedback is intentionally
+   * outside the Task 10 measurement.
+   */
   recentlyAdded.value = true
 
   if (addedTimer) {
-    clearTimeout(addedTimer)
+    clearTimeout(
+      addedTimer,
+    )
   }
 
-  addedTimer = setTimeout(
-    () => {
-      recentlyAdded.value = false
-    },
-    1500,
-  )
+  addedTimer =
+    setTimeout(
+      () => {
+        recentlyAdded.value =
+          false
+      },
+      1500,
+    )
 }
 
 function addFromQuickView() {
@@ -210,7 +284,7 @@ onUnmounted(() => {
     <div class="px-1 pb-1 pt-4">
       <div
         class="
-          flex items-start
+          flex flex-wrap items-start
           justify-between
           gap-4
         "

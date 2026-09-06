@@ -6,6 +6,11 @@ import {
   preparePosOrderForPayment,
 } from '#server/domains/ordering/service'
 
+import {
+  getBrewHubRequestContext,
+} from '#server/utils/request-context'
+
+
 export default defineEventHandler(
   async (event) => {
     const staff =
@@ -36,11 +41,17 @@ export default defineEventHandler(
       })
     }
 
+    const requestContext =
+      getBrewHubRequestContext(
+      event,
+    )
+
     const order =
       await preparePosOrderForPayment(
-        staff.id,
-        orderId,
-      )
+      staff.id,
+      orderId,
+      requestContext.traceId,
+  )
 
     return {
       message:

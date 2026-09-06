@@ -6,6 +6,211 @@
 
 **Responsibility**
 
+- authenticate users
+- perform authentication-related user lookup
+- manage authorization, roles, and branch access
+
+**Owns**
+
+- users
+- roles
+- user_roles
+- user_branches
+
+**Exposed operations**
+
+- `findAuthenticationUserByUsername()`
+- `findAuthenticationUserByEmail()`
+- `authenticateUser()`
+
+**Must not**
+
+- directly modify orders
+- directly modify payments
+- directly modify inventory or stock movements
+
+---
+
+### Customer
+
+**Responsibility**
+
+- register customers
+- maintain customer records
+- retrieve customer profiles associated with authenticated users
+
+**Owns**
+
+- customers
+
+**Exposed operations**
+
+- `registerCustomer()`
+- `getActiveCustomerByUserId()`
+
+**Must not**
+
+- directly modify payments
+- directly modify inventory
+- directly change order state owned by Ordering
+
+---
+
+### Catalog
+
+**Responsibility**
+
+- manage product and category information
+- provide product pricing and orderable product information
+
+**Owns**
+
+- categories
+- products
+
+**Exposed operations**
+
+- `getProducts()`
+- `getCategories()`
+- `getOrderableProducts()`
+
+**Must not**
+
+- directly modify inventory balances
+- directly modify payments
+- directly modify orders
+
+---
+
+### Ordering
+
+**Responsibility**
+
+- create customer and POS orders
+- manage order items
+- prepare orders for payment
+- complete the ordering workflow
+- cancel orders
+- expose customer and staff order information
+
+**Owns**
+
+- orders
+- order_items
+
+**Exposed operations**
+
+- `createCustomerOrder()`
+- `createPosOrder()`
+- `prepareCustomerOrderForPayment()`
+- `preparePosOrderForPayment()`
+- `cancelCustomerOrder()`
+- `cancelStaffOrder()`
+- `getRecentStaffOrders()`
+- `getStaffOrderDetails()`
+- `getCustomerOrders()`
+- `getCustomerOrder()`
+
+**Must not**
+
+- directly manipulate Payment-owned payment records
+- directly bypass Inventory reservation and stock rules
+- allow Reporting to modify orders
+
+---
+
+### Inventory
+
+**Responsibility**
+
+- maintain inventory balances
+- reserve stock for orders
+- release stock reservations
+- receive stock
+- adjust stock
+- record and expose stock movements
+
+**Owns**
+
+- inventory
+- inventory_reservations
+- stock_movements
+
+**Exposed operations**
+
+- `getInventoryByBranch()`
+- `getInventoryByProduct()`
+- `getActiveOrderReservations()`
+- `getOrderReservations()`
+- `getStockMovementHistory()`
+- `getStockMovementTotal()`
+- `reserveStockForOrder()`
+- `releaseStockReservation()`
+- `receiveInventoryStock()`
+- `adjustInventoryStock()`
+
+**Must not**
+
+- allow Payment to directly edit stock
+- allow other domains to bypass inventory reservation rules
+- allow stock changes without the appropriate Inventory workflow
+
+---
+
+### Payment
+
+**Responsibility**
+
+- record payment results
+- track payments associated with orders
+- process refunds
+- prevent duplicate logical payments
+
+**Owns**
+
+- payments
+
+**Exposed operations**
+
+- `getPaymentsByOrder()`
+- `recordPaymentResult()`
+- `refundOrderPayment()`
+
+**Must not**
+
+- directly update Inventory tables
+- directly deduct stock
+- directly manipulate Catalog product information
+
+---
+
+### Reporting
+
+**Responsibility**
+
+- provide management reports
+- aggregate operational information for read-oriented business views
+- expose reporting summaries without changing operational state
+
+**Owns**
+
+- no transactional business tables
+- reporting queries and read-oriented projections
+
+**Exposed operations**
+
+- `getManagerReportSummary()`
+
+**Must not**
+
+- modify operational domain data
+- directly create or update orders, payments, inventory, customers, or products
+- introduce business-state mutations through reporting queries
+
+### Authentication
+
+**Responsibility**
+
 - authenticate staff users
 - manage authorization and roles
 

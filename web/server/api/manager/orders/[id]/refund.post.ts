@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import {
   requireAnyRole,
 } from '#server/domains/authentication/authorization'
@@ -10,14 +12,36 @@ import {
   refundOrderPayment,
 } from '#server/domains/payment/service'
 
+import {
+  getBrewHubRequestContext,
+} from '#server/utils/request-context'
+
+const refundOrderSchema =
+  z.object({
+    reason: z
+      .string()
+      .trim()
+      .min(
+        3,
+        'Refund reason is required',
+      )
+      .max(500),
+  })
+
 export default defineEventHandler(
   async (event) => {
-    await requireAnyRole(
+    const manager =
+      await requireAnyRole(
+    event,
+    [
+      'MANAGER',
+    ],
+  )
+
+    const requestContext =
+      getBrewHubRequestContext(
       event,
-      [
-        'MANAGER',
-      ],
-    )
+  )
 
     const rawOrderId =
       getRouterParam(
@@ -41,6 +65,24 @@ export default defineEventHandler(
       })
     }
 
+    const body =
+  await readBody(event)
+
+  const parsed =
+    refundOrderSchema.safeParse(
+      body,
+    )
+
+  if (!parsed.success) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        'Invalid refund request',
+      data:
+        parsed.error.flatten(),
+    })
+  }
+
     const details =
       await getStaffOrderDetails(
         orderId,
@@ -63,9 +105,28 @@ export default defineEventHandler(
     }
 
     const refund =
-      await refundOrderPayment(
-        orderId,
-      )
+  await refundOrderPayment(
+    orderId,
+    {
+      actorUserId:
+        manager.id,
+
+      branchId:
+        details.order.branchId,
+
+      /*
+       * Temporary Task 13 reason.
+       *
+       * F4/F5 will replace this with
+       * a manager-provided refund reason.
+       */
+      reason:
+        parsed.data.reason,
+
+      traceId:
+        requestContext.traceId,
+    },
+  )
 
     return {
       message:

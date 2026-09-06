@@ -118,7 +118,7 @@ function statusClasses(
     class="
       mx-auto
       w-full max-w-6xl
-      px-6 py-12
+      px-4 sm:px-6 py-12
       lg:px-8
     "
   >
@@ -188,7 +188,7 @@ function statusClasses(
         rounded-3xl
         border border-brew-100
         bg-white
-        p-8
+        p-4 sm:p-8
         text-sm
         text-brew-500
         shadow-sm
@@ -205,7 +205,7 @@ function statusClasses(
         rounded-3xl
         border border-red-200
         bg-red-50
-        p-6
+        p-4 sm:p-6
       "
     >
       <p
@@ -340,7 +340,7 @@ function statusClasses(
         class="
           border-b
           border-brew-100
-          p-6
+          p-4
           last:border-b-0
           sm:p-7
         "

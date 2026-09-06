@@ -27,12 +27,12 @@ const currentUser = computed(() => {
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 py-16 lg:px-8">
     <p class="text-sm font-semibold uppercase tracking-wider text-brew-500">
       Staff
     </p>
 
-    <h1 class="mt-3 text-4xl font-semibold text-brew-950">
+    <h1 class="mt-3 text-3xl sm:text-4xl font-semibold text-brew-950">
       BrewHub Workspace
     </h1>
 
@@ -52,7 +52,7 @@ const currentUser = computed(() => {
 
     <div
       v-else-if="currentUser"
-      class="mt-8 max-w-xl rounded-3xl border border-brew-200 bg-white p-6"
+      class="mt-8 max-w-xl rounded-3xl border border-brew-200 bg-white p-4 sm:p-6"
     >
       <p class="text-sm text-brew-500">
         Signed in as

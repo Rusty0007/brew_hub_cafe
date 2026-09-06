@@ -54,7 +54,7 @@ async function createProduct() {
   submitting.value = true
 
   try {
-    const response = await $fetch<{
+    await $fetch<{
       product: {
         id: number
       }
@@ -88,11 +88,12 @@ async function createProduct() {
       '/staff/catalog',
     )
   }
-  catch (error: any) {
-    errorMessage.value =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
-      ?? 'Unable to create product.'
+  catch (error: unknown) {
+      errorMessage.value =
+      getApiErrorMessage(
+      error,
+      'Unable to create product.',
+    )
   }
   finally {
     submitting.value = false
@@ -102,7 +103,7 @@ async function createProduct() {
 
 <template>
   <section
-    class="mx-auto max-w-3xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-3xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <NuxtLink
       to="/staff/catalog"
@@ -119,7 +120,7 @@ async function createProduct() {
       </p>
 
       <h1
-        class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+        class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
       >
         Add Product
       </h1>
@@ -133,7 +134,7 @@ async function createProduct() {
     </div>
 
     <form
-      class="mt-10 rounded-3xl border border-brew-200 bg-white p-8 shadow-sm"
+      class="mt-10 rounded-3xl border border-brew-200 bg-white p-4 sm:p-8 shadow-sm"
       @submit.prevent="createProduct"
     >
       <div
@@ -305,7 +306,7 @@ async function createProduct() {
       </div>
 
       <div
-        class="mt-8 flex justify-end gap-3"
+        class="mt-8 flex flex-wrap justify-end gap-3"
       >
         <NuxtLink
           to="/staff/catalog"

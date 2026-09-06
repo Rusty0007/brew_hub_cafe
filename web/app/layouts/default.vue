@@ -13,6 +13,18 @@ const {
 const cart = useCartStore()
 
 const isLoggingOut = ref(false)
+const mobileMenuOpen = ref(false)
+const menuButton = ref<HTMLButtonElement | null>(null)
+const route = useRoute()
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false
+  menuButton.value?.focus()
+}
+
+watch(() => route.fullPath, () => {
+  mobileMenuOpen.value = false
+})
 
 async function logout() {
   if (isLoggingOut.value) {
@@ -41,7 +53,7 @@ async function logout() {
       class="sticky top-0 z-50 border-b border-brew-200/70 bg-brew-50/90 backdrop-blur-xl"
     >
       <div
-        class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8"
+        class="mx-auto flex min-h-20 max-w-7xl flex-wrap items-center justify-between gap-x-3 px-4 sm:px-6 lg:px-8"
       >
         <NuxtLink
           to="/"
@@ -64,7 +76,24 @@ async function logout() {
           </div>
         </NuxtLink>
 
-        <nav class="flex items-center gap-1">
+        <button
+          ref="menuButton"
+          type="button"
+          class="min-h-11 rounded-xl border border-brew-200 px-3 text-sm font-semibold lg:hidden"
+          aria-controls="primary-navigation"
+          :aria-expanded="mobileMenuOpen"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
+          {{ mobileMenuOpen ? 'Close' : 'Menu' }}
+        </button>
+
+        <nav
+          id="primary-navigation"
+          aria-label="Main navigation"
+          class="max-h-[calc(100dvh-5rem)] w-full flex-col gap-1 overflow-y-auto pb-4 [&>a]:min-h-11 lg:flex lg:w-auto lg:flex-row lg:items-center lg:overflow-visible lg:pb-0"
+          :class="mobileMenuOpen ? 'flex' : 'hidden'"
+          @keydown.esc.prevent="closeMobileMenu"
+        >
           <NuxtLink
             to="/"
             class="rounded-full px-4 py-2 text-sm font-medium text-brew-600 transition hover:bg-brew-100 hover:text-brew-900"

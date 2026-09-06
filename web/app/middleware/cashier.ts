@@ -66,10 +66,11 @@ export default defineNuxtRouteMiddleware(
         return navigateTo('/staff')
       }
     }
-    catch (error: any) {
+    catch (error: unknown) {
       const statusCode =
-        error?.statusCode
-        ?? error?.response?.status
+      getApiErrorStatusCode(
+      error,
+    )
 
       if (statusCode === 401) {
         return navigateTo('/login')

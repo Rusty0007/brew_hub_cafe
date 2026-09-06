@@ -244,7 +244,7 @@ async function refreshOrders() {
     class="
       mx-auto
       max-w-7xl
-      px-6
+      px-4 sm:px-6
       py-10
       lg:px-8
     "
@@ -290,7 +290,7 @@ async function refreshOrders() {
         <h1
           class="
             mt-2
-            text-4xl
+            text-3xl sm:text-4xl
             font-semibold
             tracking-tight
             text-brew-950
@@ -519,7 +519,7 @@ async function refreshOrders() {
         border
         border-brew-200
         bg-white
-        p-8
+        p-4 sm:p-8
         text-center
         text-brew-500
       "
@@ -536,7 +536,7 @@ async function refreshOrders() {
         border
         border-red-200
         bg-red-50
-        p-6
+        p-4 sm:p-6
         text-red-700
       "
     >
@@ -554,7 +554,7 @@ async function refreshOrders() {
         border
         border-brew-200
         bg-white
-        p-10
+        p-4 sm:p-10
         text-center
       "
     >
@@ -594,7 +594,7 @@ async function refreshOrders() {
     >
       <div
         class="overflow-x-auto"
-      >
+       tabindex="0" role="region" aria-label="Orders, scroll horizontally for more columns">
         <table
           class="
             w-full

@@ -6,10 +6,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // has a valid BrewHub session.
     await requestFetch('/api/auth/me')
   }
-  catch (error: any) {
-    const statusCode =
-      error?.statusCode
-      ?? error?.response?.status
+  catch (error: unknown) {
+  const statusCode =
+    getApiErrorStatusCode(
+      error,
+    )
 
     if (statusCode === 401) {
       return navigateTo({

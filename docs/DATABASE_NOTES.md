@@ -134,14 +134,18 @@ WHERE o.created_at >= :start_of_yesterday
 
 ### Every product with current inventory, including products with no inventory row
 
-```sql
-SELECT p.*, i.quantity
+````sql
+SELECT
+    p.id,
+    p.sku,
+    p.name,
+    i.on_hand_qty,
+    i.reserved_qty,
+    i.available_qty
 FROM products p
 LEFT JOIN inventory i
-    ON i.product_id = p.id;
-```
-
-**Reason:** Products must appear even when no inventory row exists.
+    ON i.product_id = p.id
+   AND i.branch_id = :branch_id;
 
 ## 5. Dangerous Cross-Domain Reporting JOIN
 
@@ -154,7 +158,7 @@ JOIN order_items oi ON oi.order_id = o.id
 JOIN products p ON p.id = oi.product_id
 JOIN inventory i ON i.product_id = p.id
 JOIN payments pay ON pay.order_id = o.id;
-```
+````
 
 Ownership boundaries crossed:
 
@@ -169,7 +173,36 @@ Risk:
 - domain boundaries become weaker;
 - future service/module extraction becomes harder.
 
-The assessment asks whether a reporting read model would be safer. A reporting read model is a reasonable architecture option to discuss.
+### Reporting Read Model Decision
+
+A reporting read model is the safer long-term architecture for BrewHub reporting.
+
+The example reporting query crosses several domain ownership boundaries:
+
+- Ordering owns `orders` and `order_items`
+- Catalog owns `products`
+- Inventory owns `inventory`
+- Payment owns `payments`
+
+A direct reporting query can technically join these tables, but it creates strong coupling between Reporting and the internal database structure of several operational domains.
+
+For example, if Inventory changes how stock balances are stored, or Payment changes how payment statuses are represented, a report that directly depends on those tables may break even though the Reporting domain itself did not change.
+
+A safer architecture is:
+
+````text
+Operational Domains
+├── Ordering
+├── Catalog
+├── Inventory
+└── Payment
+        |
+        | controlled data extraction / projection
+        v
+Reporting Read Model
+        |
+        v
+Management Reports
 
 ## 6. Concurrent Inventory
 
@@ -177,7 +210,7 @@ Required invariant:
 
 ```text
 available_stock >= 0
-```
+````
 
 unless the business explicitly permits negative inventory.
 

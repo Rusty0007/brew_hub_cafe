@@ -218,7 +218,7 @@ function methodClass(
         </p>
 
         <h1
-          class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+          class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
         >
           System Activity
         </h1>
@@ -244,7 +244,7 @@ function methodClass(
 
     <!-- Filters -->
     <div
-      class="mt-8 grid gap-4 rounded-2xl border border-brew-200 bg-white p-5 shadow-sm md:grid-cols-[1fr_220px]"
+      class="mt-8 grid gap-4 rounded-2xl border border-brew-200 bg-white p-5 shadow-sm md:grid-cols-[minmax(0,1fr)_220px]"
     >
       <div>
         <label
@@ -298,7 +298,7 @@ function methodClass(
     <!-- Loading -->
     <div
       v-if="pending && !data"
-      class="mt-8 rounded-2xl border border-brew-200 bg-white p-8 text-sm text-brew-500"
+      class="mt-8 rounded-2xl border border-brew-200 bg-white p-4 sm:p-8 text-sm text-brew-500"
     >
       Loading system activity...
     </div>
@@ -306,7 +306,7 @@ function methodClass(
     <!-- Error -->
     <div
       v-else-if="error"
-      class="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6"
+      class="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-6"
     >
       <p
         class="font-semibold text-red-900"
@@ -348,7 +348,7 @@ function methodClass(
 
       <div
         v-if="filteredLogs.length === 0"
-        class="p-8 text-center text-sm text-brew-500"
+        class="p-4 sm:p-8 text-center text-sm text-brew-500"
       >
         No request logs match the current filters.
       </div>
@@ -356,7 +356,7 @@ function methodClass(
       <div
         v-else
         class="overflow-x-auto"
-      >
+       tabindex="0" role="region" aria-label="Observability events, scroll horizontally for more columns">
         <table
           class="min-w-full divide-y divide-brew-200 text-left text-sm"
         >

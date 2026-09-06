@@ -7,7 +7,11 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "lint:arch": "node ./scripts/architecture-lint.mjs",
+    "typecheck": "nuxi typecheck",
+    "lint": "eslint .",
+    "verify": "npm run lint && npm run lint:arch && npm run typecheck"
   },
   "dependencies": {
     "@pinia/nuxt": "^1.0.2",

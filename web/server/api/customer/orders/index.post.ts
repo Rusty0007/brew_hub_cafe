@@ -15,12 +15,17 @@ import {
 import { logInfo } from '#server/utils/logger'
 
 import {
+  recordCheckoutStage,
   recordTelemetryEvent,
 } from '#server/domains/observability/service'
 
+import {
+  startPerformanceTimer,
+} from '#server/domains/observability/performance'
+
 export default defineEventHandler(
   async (event) => {
-    
+
     const user =
       await requireUser(event)
 
@@ -28,25 +33,25 @@ export default defineEventHandler(
       getBrewHubRequestContext(
         event,
       )
-    
+
     logInfo(
       'checkout.start',
       {
         requestId:
           checkoutContext.requestId,
-      
+
         traceId:
           checkoutContext.traceId,
-      
+
         userId:
           user.id,
-      
+
         method:
           'POST',
-      
+
         path:
           '/api/customer/orders',
-      
+
         result:
           'started',
       },
@@ -74,7 +79,7 @@ export default defineEventHandler(
       metadata: {
         method:
           'POST',
-      
+
         path:
           '/api/customer/orders',
       },
@@ -101,18 +106,26 @@ export default defineEventHandler(
       })
     }
 
+    const orderCreatePerformanceTimer =
+      startPerformanceTimer()
+
     const order =
       await createCustomerOrder(
         user.id,
         parsed.data,
       )
 
+    const orderCreateDurationMs =
+      orderCreatePerformanceTimer
+      .elapsedMs()
+
+
     updateBrewHubRequestContext(
         event,
         {
           orderId:
             order.id,
-        
+
           branchId:
             order.branchId,
         },
@@ -122,29 +135,66 @@ export default defineEventHandler(
         getBrewHubRequestContext(
           event,
         )
-      
+
+      await recordCheckoutStage({
+        stage:
+          'order.create',
+
+        durationMs:
+          orderCreateDurationMs,
+
+        requestId:
+          orderContext.requestId,
+
+        traceId:
+          orderContext.traceId,
+
+        userId:
+          user.id,
+
+        branchId:
+          order.branchId,
+
+        orderId:
+          order.id,
+
+        source:
+          'CUSTOMER',
+
+        orderType:
+          parsed.data.orderType,
+
+        result:
+          'success',
+
+        metadata: {
+          itemCount:
+            parsed.data.items.length,
+        },
+      })
+
       logInfo(
         'order.create',
         {
           requestId:
             orderContext.requestId,
-        
+
           traceId:
             orderContext.traceId,
-        
+
           userId:
             user.id,
-        
+
           branchId:
             order.branchId,
-        
+
           orderId:
             order.id,
-        
+
           durationMs:
             Date.now()
             - orderCreateStartedAtMs,
-        
+
           result:
             'success',
         },

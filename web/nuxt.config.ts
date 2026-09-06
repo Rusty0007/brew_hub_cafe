@@ -41,10 +41,14 @@ export default defineNuxtConfig({
     dbUser: '',
     dbPassword: '',
     dbSchema: 'brewhub',
+    dbSsl: false,
 
     session: {
       cookie: {
-        secure: false,
+        secure:
+          process.env.NODE_ENV
+          === 'production',
+
         httpOnly: true,
         sameSite: 'lax',
       },
@@ -55,40 +59,40 @@ export default defineNuxtConfig({
     },
   },
 
-      security: {
-        csrf: true,
+  security: {
+    csrf: true,
+  },
+
+  routeRules: {
+    '/**': {
+      csurf: false,
+    },
+
+    '/login': {
+      csurf: {
+        methodsToProtect: [
+          'POST',
+        ],
+      },
+    },
+
+    '/api/auth/login': {
+      csurf: {
+        methodsToProtect: [
+          'POST',
+        ],
       },
 
-    routeRules: {
-      '/**': {
-        csurf: false,
-      },
-    
-      '/login': {
-        csurf: {
-          methodsToProtect: [
-            'POST',
-          ],
-        },
-      },
-    
-      '/api/auth/login': {
-        csurf: {
-          methodsToProtect: [
-            'POST',
-          ],
-        },
-      
-        security: {
-          rateLimiter: {
-            tokensPerInterval: 10,
-            interval: 60_000,
-            headers: true,
-            throwError: true,
-          },
+      security: {
+        rateLimiter: {
+          tokensPerInterval: 10,
+          interval: 60_000,
+          headers: true,
+          throwError: true,
         },
       },
     },
+  },
 
   nitro: {
     experimental: {
@@ -96,7 +100,7 @@ export default defineNuxtConfig({
     },
 
     scheduledTasks: {
-      '* * * * *': [
+      '0 0 * * *': [
         'ordering:recover-expired-pending-orders',
       ],
     },

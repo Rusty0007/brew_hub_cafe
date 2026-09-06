@@ -1,4 +1,9 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 definePageMeta({
   middleware: [
     'auth',
@@ -266,9 +271,12 @@ function getCategoryName(
   ) ?? 'Uncategorized'
 }
 
-function addProduct(
+async function addProduct(
   product: CatalogProduct,
 ) {
+  const startedAtMs =
+    performance.now()
+
   const existing =
     posLines.value.find(
       line =>
@@ -278,27 +286,90 @@ function addProduct(
 
   if (existing) {
     existing.quantity += 1
-    return
+  }
+  else {
+    posLines.value.push({
+      productId:
+        product.id,
+
+      sku:
+        product.sku,
+
+      name:
+        product.name,
+
+      unitPrice:
+        getProductPrice(
+          product,
+        ),
+
+      quantity: 1,
+    })
   }
 
-  posLines.value.push({
-    productId:
-      product.id,
+  /*
+   * Wait for Vue's reactive state
+   * update before ending the logical
+   * Add Item measurement.
+   */
+  await nextTick()
 
-    sku:
-      product.sku,
-
-    name:
-      product.name,
-
-    unitPrice:
-      getProductPrice(
-        product,
+  const durationMs =
+    Number(
+      (
+        performance.now()
+        - startedAtMs
+      ).toFixed(
+        2,
       ),
+    )
 
-    quantity: 1,
-  })
-}
+  /*
+ * Telemetry transmission happens
+ * after the measured operation.
+ *
+ * Do not wait for telemetry because
+ * observability must not delay the
+ * POS Add Item interaction.
+ */
+void $csrfFetch(
+  '/api/observability/client-performance',
+  {
+    method: 'POST',
+
+    body: {
+      operation:
+        'ordering.add_item',
+
+      durationMs,
+
+      source:
+        'POS',
+
+      result:
+        'success',
+
+      metadata: {
+        productId:
+          product.id,
+
+        existingLine:
+          Boolean(
+            existing,
+          ),
+      },
+    },
+  },
+)
+  .catch(
+    (error) => {
+      console.error(
+        'Add Item performance telemetry failed:',
+        error,
+      )
+    },
+  )
+  }
 
 function increaseQuantity(
   productId: number,
@@ -641,7 +712,7 @@ function startNewPosOrder() {
     class="
       mx-auto
       max-w-7xl
-      px-6
+      px-4 sm:px-6
       py-10
       lg:px-8
     "
@@ -667,7 +738,7 @@ function startNewPosOrder() {
             hover:text-brew-900
           "
         >
-          ← Back to Cashier Workspace
+          â† Back to Cashier Workspace
         </NuxtLink>
 
         <p
@@ -686,7 +757,7 @@ function startNewPosOrder() {
         <h1
           class="
             mt-2
-            text-4xl
+            text-3xl sm:text-4xl
             font-semibold
             tracking-tight
             text-brew-950
@@ -773,7 +844,7 @@ function startNewPosOrder() {
             class="
               grid
               gap-4
-              md:grid-cols-[minmax(0,1fr)_14rem_auto]
+              md:grid-cols-2
             "
             @submit.prevent="applySearch"
           >
@@ -867,9 +938,7 @@ function startNewPosOrder() {
 
             <div
               class="
-                flex
-                items-end
-                gap-2
+                flex flex-wrap items-end gap-2 md:col-span-2
               "
             >
               <button
@@ -939,7 +1008,7 @@ function startNewPosOrder() {
             border
             border-brew-200
             bg-white
-            p-8
+            p-4 sm:p-8
             text-center
             text-brew-500
           "
@@ -955,7 +1024,7 @@ function startNewPosOrder() {
             border
             border-red-200
             bg-red-50
-            p-6
+            p-4 sm:p-6
             text-red-700
           "
         >
@@ -972,7 +1041,7 @@ function startNewPosOrder() {
             border
             border-brew-200
             bg-white
-            p-8
+            p-4 sm:p-8
             text-center
           "
         >
@@ -1175,18 +1244,14 @@ function startNewPosOrder() {
             border
             border-brew-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
-            lg:sticky
-            lg:top-6
+
           "
         >
           <div
             class="
-              flex
-              items-center
-              justify-between
-              gap-4
+              flex flex-wrap items-center justify-between gap-4
             "
           >
             <div>
@@ -1246,7 +1311,7 @@ function startNewPosOrder() {
               >
                 Order type
               </span>
-          
+
               <select
                 v-model="orderType"
                 class="
@@ -1267,7 +1332,7 @@ function startNewPosOrder() {
                 <option value="TAKEOUT">
                   Takeout
                 </option>
-            
+
                 <option value="DINE_IN">
                   Dine in
                 </option>
@@ -1381,10 +1446,7 @@ function startNewPosOrder() {
               <div
                 class="
                   mt-4
-                  flex
-                  items-center
-                  justify-between
-                  gap-4
+                  flex flex-wrap items-center justify-between gap-4
                 "
               >
                 <div
@@ -1399,18 +1461,20 @@ function startNewPosOrder() {
                   <button
                     type="button"
                     class="
+                      min-w-11
                       px-3
                       py-1.5
                       font-semibold
                       text-brew-700
                     "
+                    :aria-label="`Decrease ${line.name}`"
                     @click="
                       decreaseQuantity(
                         line.productId,
                       )
                     "
                   >
-                    −
+                    âˆ’
                   </button>
 
                   <span
@@ -1428,11 +1492,13 @@ function startNewPosOrder() {
                   <button
                     type="button"
                     class="
+                      min-w-11
                       px-3
                       py-1.5
                       font-semibold
                       text-brew-700
                     "
+                    :aria-label="`Increase ${line.name}`"
                     @click="
                       increaseQuantity(
                         line.productId,
@@ -1470,10 +1536,7 @@ function startNewPosOrder() {
           >
             <div
               class="
-                flex
-                items-center
-                justify-between
-                gap-4
+                flex flex-wrap items-center justify-between gap-4
               "
             >
               <span
@@ -1499,10 +1562,7 @@ function startNewPosOrder() {
             <div
               class="
                 mt-3
-                flex
-                items-center
-                justify-between
-                gap-4
+                flex flex-wrap items-center justify-between gap-4
               "
             >
               <span
@@ -1626,7 +1686,7 @@ function startNewPosOrder() {
           >
             Order Created
           </p>
-      
+
           <h3
             class="
               mt-2
@@ -1637,7 +1697,7 @@ function startNewPosOrder() {
           >
             {{ createdOrder.orderNo }}
           </h3>
-      
+
           <div
             class="
               mt-4
@@ -1654,12 +1714,12 @@ function startNewPosOrder() {
               "
             >
               <span>Status</span>
-      
+
               <strong>
                 {{ createdOrder.status }}
               </strong>
             </div>
-        
+
             <div
               class="
                 flex
@@ -1668,12 +1728,12 @@ function startNewPosOrder() {
               "
             >
               <span>Source</span>
-        
+
               <strong>
                 {{ createdOrder.source }}
               </strong>
             </div>
-        
+
             <div
               class="
                 flex
@@ -1682,7 +1742,7 @@ function startNewPosOrder() {
               "
             >
               <span>Order type</span>
-        
+
               <strong>
                 {{
                   createdOrder.orderType
@@ -1692,7 +1752,7 @@ function startNewPosOrder() {
                 }}
               </strong>
             </div>
-        
+
             <div
               class="
                 flex
@@ -1701,7 +1761,7 @@ function startNewPosOrder() {
               "
             >
               <span>Total</span>
-        
+
               <strong>
                 {{
                   formatMoney(
@@ -1773,7 +1833,7 @@ function startNewPosOrder() {
               >
                 Ready for payment
               </p>
-          
+
               <p
                 class="
                   mt-1
@@ -1850,7 +1910,7 @@ function startNewPosOrder() {
               >
                 Payment complete
               </p>
-          
+
               <p
                 class="
                   mt-1
@@ -1863,7 +1923,7 @@ function startNewPosOrder() {
                 this POS order is completed.
               </p>
             </div>
-      
+
           <button
             v-if="
             createdOrder.status === 'DRAFT'
@@ -1952,7 +2012,7 @@ function startNewPosOrder() {
             >
               Payment is being verified
             </p>
-          
+
             <p
               class="
                 mt-1

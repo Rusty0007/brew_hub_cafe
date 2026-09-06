@@ -1,14 +1,20 @@
 import {
-  randomUUID,
-} from 'node:crypto'
-
-import {
   getActiveCustomerByUserId,
 } from '#server/domains/customer/service'
 
 import {
   recordPaymentResult,
 } from '#server/domains/payment/service'
+
+import {
+  recordCheckoutStage,
+  recordCheckoutWorkflowPerformance,
+  recordTelemetryEvent,
+} from '#server/domains/observability/service'
+
+import {
+  startPerformanceTimer,
+} from '#server/domains/observability/performance'
 
 import {
   completeOrder,
@@ -155,6 +161,41 @@ export async function simulatePosPaymentTimeout(
     },
   )
 
+  await recordTelemetryEvent({
+    eventName:
+      'payment.timeout',
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderId:
+      order.id,
+
+    source:
+      'POS',
+
+    result:
+      'timeout',
+
+    metadata: {
+      paymentId:
+        payment.id,
+
+      paymentStatus:
+        'UNKNOWN',
+
+      provider:
+        'TESDA_SIMULATED_GATEWAY',
+
+      failureCode:
+        'PAYMENT_TIMEOUT',
+    },
+  })
+
   /*
    * Important:
    *
@@ -180,6 +221,7 @@ export async function completeCustomerCheckout(
   userId: number,
   orderId: number,
   input: CompleteCustomerCheckoutInput,
+  traceId: string,
 ) {
   /*
    * 1. Confirm that the logged-in user
@@ -249,16 +291,18 @@ export async function completeCustomerCheckout(
     })
   }
 
-  const traceId =
-    randomUUID()
-
   /*
    * 3. Record the successful payment.
    *
    * For now this represents a trusted
    * successful payment result.
    */
+
+  const paymentAuthorizePerformanceTimer =
+  startPerformanceTimer()
+
   const payment =
+
     await recordPaymentResult({
       orderId:
         order.id,
@@ -285,6 +329,45 @@ export async function completeCustomerCheckout(
         null,
     })
 
+    const paymentAuthorizeDurationMs =
+      paymentAuthorizePerformanceTimer
+      .elapsedMs()
+
+    await recordCheckoutStage({
+      stage:
+        'payment.authorize',
+
+      durationMs:
+        paymentAuthorizeDurationMs,
+
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'CUSTOMER',
+
+      result:
+        'success',
+
+      metadata: {
+        method:
+          input.method,
+
+        provider:
+          input.provider,
+
+        paymentId:
+          payment.id,
+      },
+    })
+
   /*
    * 4. Complete the order.
    *
@@ -292,6 +375,10 @@ export async function completeCustomerCheckout(
    * payments cover the order total before
    * consuming reservations.
    */
+
+  const orderCompletePerformanceTimer =
+    startPerformanceTimer()
+
   await completeOrder(
     order.id,
     userId,
@@ -326,6 +413,65 @@ export async function completeCustomerCheckout(
     })
   }
 
+  const orderCompleteDurationMs =
+    orderCompletePerformanceTimer
+      .elapsedMs()
+
+    await recordCheckoutStage({
+    stage:
+      'order.complete',
+
+    durationMs:
+      orderCompleteDurationMs,
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderId:
+      order.id,
+
+    source:
+      'CUSTOMER',
+
+    result:
+      'success',
+
+    metadata: {
+      completedStatus:
+        completedOrder.status,
+    },
+  })
+
+  const checkoutOrderType =
+  completedOrder.orderType
+    === 'DINE_IN'
+  || completedOrder.orderType
+    === 'TAKEOUT'
+    ? completedOrder.orderType
+    : null
+
+    await recordCheckoutWorkflowPerformance({
+    orderId:
+      order.id,
+
+    source:
+      'CUSTOMER',
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderType:
+      checkoutOrderType,
+  })
+
   return {
     order:
       completedOrder,
@@ -340,6 +486,7 @@ export async function completePosCheckout(
   userId: number,
   orderId: number,
   input: CompletePosCheckoutInput,
+  traceId: string,
 ) {
   /*
    * 1. Load the POS order.
@@ -408,9 +555,6 @@ export async function completePosCheckout(
     })
   }
 
-  const traceId =
-    randomUUID()
-
   const paymentStartedAtMs =
     Date.now()
 
@@ -418,21 +562,21 @@ export async function completePosCheckout(
       'payment.authorize',
       {
         traceId,
-      
+
         userId,
-      
+
         branchId:
           order.branchId,
-      
+
         orderId:
           order.id,
-      
+
         method:
           input.method,
-      
+
         provider:
           input.provider,
-      
+
         source:
           'POS',
       },
@@ -459,62 +603,104 @@ export async function completePosCheckout(
         )
       }
 
+      const paymentAuthorizePerformanceTimer =
+        startPerformanceTimer()
+
       payment =
         await recordPaymentResult({
           orderId:
             order.id,
-        
+
           method:
             input.method,
-        
+
           provider:
             input.provider,
-        
+
           providerReference:
             input.providerReference,
-        
+
           amount:
             totalAmount,
-        
+
           status:
             'SUCCEEDED',
-        
+
           failureCode:
             null,
-        
+
           failureMessage:
             null,
         })
-      
+
+      const paymentAuthorizeDurationMs =
+        paymentAuthorizePerformanceTimer
+          .elapsedMs()
+
+      await recordCheckoutStage({
+        stage:
+          'payment.authorize',
+
+        durationMs:
+          paymentAuthorizeDurationMs,
+
+        traceId,
+
+        userId,
+
+        branchId:
+          order.branchId,
+
+        orderId:
+          order.id,
+
+        source:
+          'POS',
+
+        result:
+          'success',
+
+        metadata: {
+          method:
+            input.method,
+
+          provider:
+            input.provider,
+
+          paymentId:
+            payment.id,
+        },
+      })
+
       logInfo(
         'payment.succeeded',
         {
           traceId,
-        
+
           userId,
-        
+
           branchId:
             order.branchId,
-        
+
           orderId:
             order.id,
-        
+
           method:
             input.method,
-        
+
           provider:
             input.provider,
-        
+
           paymentId:
             payment.id,
-        
+
           durationMs:
             Date.now()
             - paymentStartedAtMs,
-        
+
           result:
             'success',
-        
+
           source:
             'POS',
         },
@@ -525,44 +711,44 @@ export async function completePosCheckout(
         error instanceof Error
           ? error.message
           : 'Payment processing failed'
-    
+
       logWarn(
         'payment.failed',
         {
           traceId,
-        
+
           userId,
-        
+
           branchId:
             order.branchId,
-        
+
           orderId:
             order.id,
-        
+
           method:
             input.method,
-        
+
           provider:
             input.provider,
-        
+
           durationMs:
             Date.now()
             - paymentStartedAtMs,
-        
+
           result:
             'failed',
-        
+
           source:
             'POS',
-        
+
           message,
         },
       )
-    
+
       throw error
     }
 
-    
+
 
   /*
    * 3. Complete the order.
@@ -572,6 +758,10 @@ export async function completePosCheckout(
    * deducts stock, creates SALE
    * movements, and marks COMPLETED.
    */
+
+  const orderCompletePerformanceTimer =
+  startPerformanceTimer()
+
   await completeOrder(
     order.id,
     userId,
@@ -604,6 +794,65 @@ export async function completePosCheckout(
         'POS order completion did not finish',
     })
   }
+
+  const orderCompleteDurationMs =
+  orderCompletePerformanceTimer
+    .elapsedMs()
+
+  await recordCheckoutStage({
+    stage:
+      'order.complete',
+
+    durationMs:
+      orderCompleteDurationMs,
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderId:
+      order.id,
+
+    source:
+      'POS',
+
+    result:
+      'success',
+
+    metadata: {
+      completedStatus:
+        completedOrder.status,
+    },
+  })
+
+    const checkoutOrderType =
+      completedOrder.orderType
+        === 'DINE_IN'
+      || completedOrder.orderType
+        === 'TAKEOUT'
+        ? completedOrder.orderType
+        : null
+
+    await recordCheckoutWorkflowPerformance({
+    orderId:
+      order.id,
+
+    source:
+      'POS',
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderType:
+      checkoutOrderType,
+  })
 
   return {
     order:

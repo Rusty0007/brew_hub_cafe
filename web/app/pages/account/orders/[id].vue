@@ -355,7 +355,7 @@ function getApiErrorMessage(
     class="
       mx-auto
       w-full max-w-5xl
-      px-6 py-12
+      px-4 sm:px-6 py-12
       lg:px-8
     "
   >
@@ -381,7 +381,7 @@ function getApiErrorMessage(
         rounded-3xl
         border border-brew-100
         bg-white
-        p-8
+        p-4 sm:p-8
         text-brew-500
         shadow-sm
       "
@@ -397,7 +397,7 @@ function getApiErrorMessage(
         rounded-3xl
         border border-red-200
         bg-red-50
-        p-6
+        p-4 sm:p-6
       "
     >
       <p
@@ -435,7 +435,7 @@ function getApiErrorMessage(
           rounded-3xl
           border border-brew-100
           bg-white
-          p-6
+          p-4
           shadow-sm
           sm:p-8
         "
@@ -682,7 +682,7 @@ function getApiErrorMessage(
           rounded-3xl
           border border-brew-100
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -694,7 +694,7 @@ function getApiErrorMessage(
         >
           <div
             class="
-              flex justify-between
+              flex flex-wrap justify-between gap-x-4 gap-y-2
               text-brew-600
             "
           >
@@ -711,7 +711,7 @@ function getApiErrorMessage(
 
           <div
             class="
-              flex justify-between
+              flex flex-wrap justify-between gap-x-4 gap-y-2
               text-brew-600
             "
           >
@@ -728,7 +728,7 @@ function getApiErrorMessage(
 
           <div
             class="
-              flex justify-between
+              flex flex-wrap justify-between gap-x-4 gap-y-2
               text-brew-600
             "
           >
@@ -745,8 +745,8 @@ function getApiErrorMessage(
 
           <div
             class="
-              flex items-center
-              justify-between
+              flex flex-wrap items-center
+              justify-between gap-x-4 gap-y-2
               border-t border-brew-100
               pt-4
             "
@@ -788,7 +788,7 @@ function getApiErrorMessage(
           rounded-3xl
           border border-brew-100
           bg-white
-          p-6
+          p-4
           shadow-sm
           sm:p-8
         "
@@ -1177,7 +1177,7 @@ function getApiErrorMessage(
                   transition
                   focus:border-red-500
                 "
-              ></textarea>
+              />
             </label>
 
             <div

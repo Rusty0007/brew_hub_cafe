@@ -196,6 +196,12 @@ export const updateManagedProductSchema = z
       .min(0)
       .optional(),
 
+    reason: z
+      .string()
+      .trim()
+      .max(500)
+      .optional(),
+
     trackInventory:
       z.boolean().optional(),
 
@@ -203,13 +209,18 @@ export const updateManagedProductSchema = z
       z.boolean().optional(),
   })
   .refine(
-    data =>
-      Object.keys(data).length > 0,
-    {
-      message:
-        'No product changes supplied.',
-    },
-  )
+  data =>
+    data.name !== undefined
+    || data.description !== undefined
+    || data.categoryId !== undefined
+    || data.basePrice !== undefined
+    || data.trackInventory !== undefined
+    || data.isActive !== undefined,
+  {
+    message:
+      'No product changes supplied.',
+  },
+)
 
 export type UpdateManagedProductInput =
   z.infer<
@@ -239,11 +250,37 @@ export async function getManagedProduct(
   }
 }
 
+interface EditManagedProductAuditContext {
+  actorUserId: number
+  reason: string
+  traceId?: string | null
+}
+
 export async function editManagedProduct(
   productId: number,
   input: UpdateManagedProductInput,
+  auditContext?: EditManagedProductAuditContext,
 ) {
-  await getManagedProduct(productId)
+  const existingProduct =
+  await getManagedProduct(
+    productId,
+  )
+
+  const priceChanged =
+  input.basePrice !== undefined
+  && input.basePrice
+  !== existingProduct.basePrice
+
+if (
+  priceChanged
+  && !input.reason?.trim()
+) {
+  throw createError({
+    statusCode: 400,
+    statusMessage:
+      'Price change reason is required',
+  })
+}
 
   if (
     input.categoryId !== undefined
@@ -315,6 +352,7 @@ export async function editManagedProduct(
     await updateManagedProduct(
       productId,
       changes,
+      auditContext,
     )
 
   if (!product) {

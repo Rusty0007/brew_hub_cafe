@@ -7,6 +7,10 @@ import {
   cancelCustomerOrderSchema,
 } from '#server/domains/ordering/service'
 
+import {
+  getBrewHubRequestContext,
+} from '#server/utils/request-context'
+
 export default defineEventHandler(
   async (event) => {
     const user =
@@ -49,11 +53,17 @@ export default defineEventHandler(
       })
     }
 
+    const requestContext =
+      getBrewHubRequestContext(
+      event,
+    )
+
     const order =
       await cancelCustomerOrder(
         user.id,
         orderId,
         parsed.data.reason,
+        requestContext.traceId,
       )
 
     return {

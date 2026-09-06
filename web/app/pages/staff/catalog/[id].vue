@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 definePageMeta({
   middleware: [
     'auth',
@@ -70,6 +70,23 @@ const saving = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
 
+const priceChangeReason =
+  ref('')
+
+const priceChanged =
+  computed(() => {
+    if (!product.value) {
+      return false
+    }
+
+    return Number(
+      form.basePrice,
+    ).toFixed(2)
+    !== Number(
+      product.value.basePrice,
+    ).toFixed(2)
+  })
+
 watch(
   product,
   current => {
@@ -101,9 +118,20 @@ watch(
 )
 
 async function saveChanges() {
-  saving.value = true
   successMessage.value = ''
-  errorMessage.value = ''
+errorMessage.value = ''
+
+if (
+  priceChanged.value
+  && !priceChangeReason.value.trim()
+) {
+  errorMessage.value =
+    'Enter a reason for changing the product price.'
+
+  return
+}
+
+saving.value = true
 
   try {
     await $fetch(
@@ -119,6 +147,10 @@ async function saveChanges() {
             form.categoryId,
           basePrice:
             form.basePrice,
+          reason:
+            priceChanged.value
+            ? priceChangeReason.value.trim()
+            : undefined,
           trackInventory:
             form.trackInventory,
           isActive:
@@ -128,15 +160,17 @@ async function saveChanges() {
     )
 
     await refresh()
+    priceChangeReason.value = ''
 
     successMessage.value =
       'Product updated successfully.'
   }
-  catch (error: any) {
+  catch (error: unknown) {
     errorMessage.value =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
-      ?? 'Unable to update product.'
+      getApiErrorMessage(
+      error,
+      'Unable to update product.',
+    )
   }
   finally {
     saving.value = false
@@ -146,13 +180,13 @@ async function saveChanges() {
 
 <template>
   <section
-    class="mx-auto max-w-3xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-3xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <NuxtLink
       to="/staff/catalog"
       class="text-sm font-medium text-brew-500 hover:text-brew-800"
     >
-      ← Catalog Management
+      â† Catalog Management
     </NuxtLink>
 
     <div
@@ -178,7 +212,7 @@ async function saveChanges() {
         </p>
 
         <h1
-          class="mt-3 text-4xl font-semibold text-brew-950"
+          class="mt-3 text-3xl sm:text-4xl font-semibold text-brew-950"
         >
           {{ product.name }}
         </h1>
@@ -191,7 +225,7 @@ async function saveChanges() {
       </div>
 
       <form
-        class="mt-10 rounded-3xl border border-brew-200 bg-white p-8 shadow-sm"
+        class="mt-10 rounded-3xl border border-brew-200 bg-white p-4 sm:p-8 shadow-sm"
         @submit.prevent="saveChanges"
       >
         <div
@@ -209,6 +243,34 @@ async function saveChanges() {
               required
               class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 outline-none focus:border-brew-500"
             >
+          </label>
+
+          <label
+            v-if="priceChanged"
+            class="md:col-span-2"
+          >
+            <span
+              class="text-sm font-medium text-brew-900"
+            >
+              Price change reason
+            </span>
+
+            <p
+              class="mt-1 text-sm text-brew-500"
+            >
+              A reason is required because changing
+              a product price is recorded in the
+              audit trail.
+            </p>
+
+            <textarea
+              v-model.trim="priceChangeReason"
+              rows="3"
+              maxlength="500"
+              required
+              placeholder="Example: Supplier cost increased effective September 2026"
+              class="mt-2 w-full resize-none rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 outline-none focus:border-brew-500"
+            />
           </label>
 
           <label>
@@ -330,7 +392,7 @@ async function saveChanges() {
         </div>
 
         <div
-          class="mt-8 flex justify-end gap-3"
+          class="mt-8 flex flex-wrap justify-end gap-3"
         >
           <NuxtLink
             to="/staff/catalog"

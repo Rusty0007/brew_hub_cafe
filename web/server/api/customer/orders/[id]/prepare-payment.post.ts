@@ -71,16 +71,17 @@ export default defineEventHandler(
     Date.now()
 
     try {
-      const order =
-        await prepareCustomerOrderForPayment(
-          user.id,
-          orderId,
-        )
-      
       const requestContext =
         getBrewHubRequestContext(
-          event,
-        )
+      event,
+       )
+
+      const order =
+        await prepareCustomerOrderForPayment(
+        user.id,
+        orderId,
+        requestContext.traceId,
+      )
       
       logInfo(
         'inventory.reserve',

@@ -4,9 +4,10 @@ import {
   findPaymentByProviderReference,
   insertPaymentRecord,
   findPaymentsByOrderId,
+  insertRefundPaymentRecordWithAudit,
 } from './repository'
 
-import { 
+import {
   logInfo
 } from '#server/utils/logger'
 
@@ -214,18 +215,18 @@ export async function recordPaymentResult(
         {
           orderId:
             data.orderId,
-        
+
           provider,
-        
+
           paymentStatus:
             existingPayment.status,
-        
+
           existingPaymentId:
             existingPayment.id,
-        
+
           duplicatePrevented:
             true,
-        
+
           detection:
             'existing_reference',
         },
@@ -317,18 +318,18 @@ export async function recordPaymentResult(
           {
             orderId:
               data.orderId,
-          
+
             provider,
-          
+
             paymentStatus:
               existingPayment.status,
-          
+
             existingPaymentId:
               existingPayment.id,
-          
+
             duplicatePrevented:
               true,
-          
+
             detection:
               'concurrent_insert_race',
           },
@@ -343,24 +344,33 @@ export async function recordPaymentResult(
   }
 }
 
+interface RefundOrderPaymentAuditContext {
+  actorUserId: number
+  branchId: number | null
+  reason: string
+  traceId?: string | null
+}
+
 export async function refundOrderPayment(
   orderId: number,
+  auditContext: RefundOrderPaymentAuditContext,
 ) {
-  if (
-    !Number.isInteger(orderId)
-    || orderId <= 0
-  ) {
-    throw createError({
-      statusCode: 400,
-      statusMessage:
-        'Invalid order ID',
-    })
-  }
 
   const paymentRows =
     await findPaymentsByOrderId(
       orderId,
     )
+
+  const auditReason =
+      auditContext.reason.trim()
+
+    if (!auditReason) {
+      throw createError({
+        statusCode: 400,
+        statusMessage:
+          'Refund reason is required',
+      })
+    }
 
   const successfulPayments =
     paymentRows.filter(
@@ -494,39 +504,96 @@ export async function refundOrderPayment(
   }
 
   try {
+    const refundInput = {
+  orderId,
+
+  transactionType:
+    'REFUND' as const,
+
+  parentPaymentId:
+    originalPayment.id,
+
+  method:
+    originalPayment.method,
+
+  provider,
+
+  providerReference,
+
+  amount:
+    amount.toFixed(2),
+
+  status:
+    'SUCCEEDED' as const,
+
+  failureCode:
+    null,
+
+  failureMessage:
+    null,
+
+  processedAt:
+    new Date()
+      .toISOString(),
+}
+
     const refund =
-      await insertPaymentRecord({
-        orderId,
+      await insertRefundPaymentRecordWithAudit(
+        refundInput,
+        {
+          actorUserId:
+            auditContext.actorUserId,
 
-        transactionType:
-          'REFUND',
+          branchId:
+            auditContext.branchId,
 
-        parentPaymentId:
-          originalPayment.id,
+          reason:
+            auditReason,
 
-        method:
-          originalPayment.method,
+          traceId:
+            auditContext.traceId
+            ?? null,
 
-        provider,
+          originalPayment: {
+            id:
+              originalPayment.id,
 
-        providerReference,
+            amount:
+              originalPayment.amount,
 
-        amount:
-          amount.toFixed(2),
+            status:
+              originalPayment.status,
+          },
+        },
+      )
 
-        status:
-          'SUCCEEDED',
+      logInfo(
+        'payment.refunded',
+        {
+          traceId:
+            auditContext.traceId
+            ?? null,
 
-        failureCode:
-          null,
+          userId:
+            auditContext.actorUserId,
 
-        failureMessage:
-          null,
+          branchId:
+            auditContext.branchId,
 
-        processedAt:
-          new Date()
-            .toISOString(),
-      })
+          orderId,
+
+          paymentId:
+            refund.id,
+
+          parentPaymentId:
+            originalPayment.id,
+
+          amount,
+
+          result:
+            'success',
+        },
+      )
 
     return normalizePayment(
       refund,
@@ -585,4 +652,3 @@ function normalizePayment<
       ),
   }
 }
-

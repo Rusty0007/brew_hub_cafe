@@ -40,6 +40,33 @@
     background: var(--color-brew-50);
   }
 
+  /* Allow long identifiers and intrinsic form widths to fit their layout. */
+  :where(main, section, article, aside, form, fieldset, label, nav) {
+    min-width: 0;
+  }
+
+  :where(.flex, .grid) > * {
+    min-width: 0;
+  }
+
+  :where(p, h1, h2, h3, h4, dd, a, button, label) {
+    overflow-wrap: anywhere;
+  }
+
+  :where(input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :where(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+    min-height: 2.75rem;
+  }
+
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brew-500);
+    outline-offset: 3px;
+  }
+
   button,
   a {
     -webkit-tap-highlight-color: transparent;

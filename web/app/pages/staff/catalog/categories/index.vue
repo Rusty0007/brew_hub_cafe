@@ -70,11 +70,12 @@ async function createCategory() {
     successMessage.value =
       'Category created successfully.'
   }
-  catch (error: any) {
+  catch (error: unknown) {
     errorMessage.value =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
-      ?? 'Unable to create category.'
+      getApiErrorMessage(
+      error,
+      'Unable to create category.',
+    )
   }
   finally {
     submitting.value = false
@@ -84,7 +85,7 @@ async function createCategory() {
 
 <template>
   <section
-    class="mx-auto max-w-7xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <NuxtLink
       to="/staff/catalog"
@@ -101,7 +102,7 @@ async function createCategory() {
       </p>
 
       <h1
-        class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+        class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
       >
         Category Management
       </h1>
@@ -115,10 +116,10 @@ async function createCategory() {
     </div>
 
     <div
-      class="mt-10 grid gap-8 lg:grid-cols-[380px_1fr]"
+      class="mt-10 grid gap-8 lg:grid-cols-[380px_minmax(0,1fr)]"
     >
       <form
-        class="rounded-3xl border border-brew-200 bg-white p-6 shadow-sm"
+        class="rounded-3xl border border-brew-200 bg-white p-4 sm:p-6 shadow-sm"
         @submit.prevent="createCategory"
       >
         <h2
@@ -228,9 +229,9 @@ async function createCategory() {
 
         <div
           v-else
-          class="overflow-hidden rounded-3xl border border-brew-200 bg-white"
-        >
-          <table class="w-full text-left">
+          class="overflow-x-auto rounded-3xl border border-brew-200 bg-white"
+         tabindex="0" role="region" aria-label="Product categories, scroll horizontally for more columns">
+          <table class="w-full min-w-150 text-left">
             <thead class="bg-brew-50">
               <tr>
                 <th

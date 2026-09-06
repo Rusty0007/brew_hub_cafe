@@ -14,6 +14,10 @@ import {
 } from './repository'
 
 import {
+  recordTelemetryEvent,
+} from '#server/domains/observability/service'
+
+import {
   logInfo,
 } from '#server/utils/logger'
 
@@ -462,6 +466,32 @@ export async function receiveInventoryStock(
         parsed,
       )
 
+    logInfo(
+      'stock.received',
+      {
+        traceId:
+          parsed.traceId
+          ?? null,
+
+        userId:
+          parsed.userId,
+
+        branchId:
+          parsed.branchId,
+
+        productId:
+          parsed.productId,
+
+        movementId,
+
+        quantity:
+          parsed.quantity,
+
+        result:
+          'success',
+      },
+    )
+
     return {
       movementId,
     }
@@ -492,22 +522,22 @@ export async function adjustInventoryStock(
       {
         userId:
           parsed.userId,
-      
+
         branchId:
           parsed.branchId,
-      
+
         traceId:
           parsed.traceId
           ?? null,
-      
+
         productId:
           parsed.productId,
-      
+
         movementId,
-      
+
         delta:
           parsed.delta,
-      
+
         result:
           'success',
       },
@@ -552,6 +582,35 @@ export async function adjustInventoryStock(
         },
       )
     }
+
+    await recordTelemetryEvent({
+      eventName:
+        'negative_stock_attempt',
+
+      traceId:
+        parsed.traceId
+        ?? null,
+
+      userId:
+        parsed.userId,
+
+      branchId:
+        parsed.branchId,
+
+      result:
+        'prevented',
+
+      metadata: {
+        productId:
+          parsed.productId,
+
+        delta:
+          parsed.delta,
+
+        reason:
+          'stock_invariant_violation',
+      },
+    })
 
     throw translateInventoryError(
       error,
@@ -760,4 +819,3 @@ function normalizeInventory<
       ),
   }
 }
-

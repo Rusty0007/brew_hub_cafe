@@ -9,7 +9,7 @@ definePageMeta({
 
 <template>
   <section
-    class="mx-auto max-w-7xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <div class="mb-10">
       <p
@@ -19,7 +19,7 @@ definePageMeta({
       </p>
 
       <h1
-        class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+        class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
       >
         Admin Dashboard
       </h1>
@@ -32,12 +32,14 @@ definePageMeta({
       </p>
     </div>
 
+    <DashboardRoleDashboard role="admin" />
+
     <div
       class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
     >
       <NuxtLink
         to="/admin/users"
-        class="rounded-3xl border border-brew-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+        class="rounded-3xl border border-brew-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
       >
         <h2
           class="text-xl font-semibold text-brew-950"
@@ -55,7 +57,7 @@ definePageMeta({
 
       <NuxtLink
         to="/admin/observability"
-        class="group rounded-3xl border border-brew-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+        class="group rounded-3xl border border-brew-200 bg-white p-4 sm:p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
       >
         <div
           class="flex items-start justify-between gap-4"
@@ -97,7 +99,7 @@ definePageMeta({
       </NuxtLink>
 
       <div
-        class="rounded-3xl border border-brew-200 bg-white p-6 shadow-sm"
+        class="rounded-3xl border border-brew-200 bg-white p-4 sm:p-6 shadow-sm"
       >
         <h2
           class="text-xl font-semibold text-brew-950"

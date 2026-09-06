@@ -1,10 +1,27 @@
 import {
   findRolesByUserId,
+  findUserByEmail,
   findUserByUsername,
   updateLastLogin,
 } from './repository'
 
 import { isStaffRole } from './types'
+
+export async function findAuthenticationUserByUsername(
+  username: string,
+) {
+  return findUserByUsername(
+    username,
+  )
+}
+
+export async function findAuthenticationUserByEmail(
+  email: string,
+) {
+  return findUserByEmail(
+    email,
+  )
+}
 
 export async function authenticateUser(
   username: string,

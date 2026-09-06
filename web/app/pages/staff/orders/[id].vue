@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 definePageMeta({
   middleware: [
     'auth',
@@ -138,6 +138,9 @@ const cancelling =
 const cancelError =
   ref('')
 
+const refundReason =
+  ref('')
+
 const refunding =
   ref(false)
 
@@ -241,7 +244,7 @@ function formatDate(
   value: string | null,
 ) {
   if (!value) {
-    return '—'
+    return 'â€”'
   }
 
   return dateFormatter.format(
@@ -307,8 +310,18 @@ async function refreshDetails() {
 }
 
 async function refundSelectedOrder() {
+  const reason =
+    refundReason.value.trim()
+
   refundError.value = ''
   refundSuccess.value = false
+
+  if (reason.length < 3) {
+    refundError.value =
+      'Please enter a refund reason.'
+
+    return
+  }
 
   const confirmed =
     window.confirm(
@@ -326,10 +339,15 @@ async function refundSelectedOrder() {
       `/api/manager/orders/${orderId}/refund`,
       {
         method: 'POST',
+
+        body: {
+          reason,
+        },
       },
     )
 
     refundSuccess.value = true
+    refundReason.value = ''
 
     await refresh()
   }
@@ -496,7 +514,7 @@ async function simulateDatabaseFailure() {
     class="
       mx-auto
       max-w-7xl
-      px-6
+      px-4 sm:px-6
       py-10
       lg:px-8
     "
@@ -521,7 +539,7 @@ async function simulateDatabaseFailure() {
             hover:text-brew-900
           "
         >
-          ← Back to Recent Orders
+          â† Back to Recent Orders
         </NuxtLink>
 
         <p
@@ -540,7 +558,7 @@ async function simulateDatabaseFailure() {
         <h1
           class="
             mt-2
-            text-4xl
+            text-3xl sm:text-4xl
             font-semibold
             tracking-tight
             text-brew-950
@@ -588,7 +606,7 @@ async function simulateDatabaseFailure() {
         border
         border-brew-200
         bg-white
-        p-10
+        p-4 sm:p-10
         text-center
         text-brew-500
       "
@@ -604,7 +622,7 @@ async function simulateDatabaseFailure() {
         border
         border-red-200
         bg-red-50
-        p-6
+        p-4 sm:p-6
         text-red-700
       "
     >
@@ -662,7 +680,7 @@ async function simulateDatabaseFailure() {
             border
             border-brew-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
             lg:col-span-2
           "
@@ -861,7 +879,7 @@ async function simulateDatabaseFailure() {
             border
             border-brew-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
           "
         >
@@ -882,7 +900,7 @@ async function simulateDatabaseFailure() {
               text-sm
             "
           >
-            <div class="flex justify-between">
+            <div class="flex flex-wrap justify-between gap-x-4 gap-y-2">
               <span class="text-brew-500">
                 Subtotal
               </span>
@@ -896,7 +914,7 @@ async function simulateDatabaseFailure() {
               </span>
             </div>
 
-            <div class="flex justify-between">
+            <div class="flex flex-wrap justify-between gap-x-4 gap-y-2">
               <span class="text-brew-500">
                 Discount
               </span>
@@ -910,7 +928,7 @@ async function simulateDatabaseFailure() {
               </span>
             </div>
 
-            <div class="flex justify-between">
+            <div class="flex flex-wrap justify-between gap-x-4 gap-y-2">
               <span class="text-brew-500">
                 Tax
               </span>
@@ -926,8 +944,8 @@ async function simulateDatabaseFailure() {
 
             <div
               class="
-                flex
-                justify-between
+                flex flex-wrap
+                justify-between gap-x-4 gap-y-2
                 border-t
                 border-brew-100
                 pt-3
@@ -958,7 +976,7 @@ async function simulateDatabaseFailure() {
             border
             border-red-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
           "
         >
@@ -978,7 +996,7 @@ async function simulateDatabaseFailure() {
             >
               Staff Action
             </p>
-          
+
             <h2
               class="
                 mt-2
@@ -989,7 +1007,7 @@ async function simulateDatabaseFailure() {
             >
               Cancel Order
             </h2>
-          
+
             <p
               class="
                 mt-2
@@ -1002,7 +1020,7 @@ async function simulateDatabaseFailure() {
               Any active inventory reservations
               will be released automatically.
             </p>
-          
+
             <label
               class="
                 mt-5
@@ -1018,7 +1036,7 @@ async function simulateDatabaseFailure() {
               >
                 Cancellation reason
               </span>
-            
+
               <textarea
                 v-model="cancellationReason"
                 rows="3"
@@ -1044,7 +1062,7 @@ async function simulateDatabaseFailure() {
                 "
               />
             </label>
-          
+
             <p
               v-if="cancelError"
               class="
@@ -1056,13 +1074,10 @@ async function simulateDatabaseFailure() {
             >
               {{ cancelError }}
             </p>
-          
+
             <div
               class="
-                mt-5
-                flex
-                items-center
-                gap-4
+                mt-5 flex flex-wrap items-center gap-4
               "
             >
               <button
@@ -1096,7 +1111,7 @@ async function simulateDatabaseFailure() {
                     : 'Cancel Order'
                 }}
               </button>
-            
+
               <span
                 class="
                   text-xs
@@ -1120,7 +1135,7 @@ async function simulateDatabaseFailure() {
             border
             border-red-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
           "
         >
@@ -1135,7 +1150,7 @@ async function simulateDatabaseFailure() {
           >
             TESDA Failure Test
           </p>
-        
+
           <h2
             class="
               mt-2
@@ -1146,7 +1161,7 @@ async function simulateDatabaseFailure() {
           >
             Database Transaction Rollback
           </h2>
-        
+
           <p
             class="
               mt-2
@@ -1159,7 +1174,7 @@ async function simulateDatabaseFailure() {
             a transaction and verifies that the
             temporary order change is rolled back.
           </p>
-        
+
           <button
             type="button"
             :disabled="
@@ -1191,7 +1206,7 @@ async function simulateDatabaseFailure() {
                 : 'TESDA: Simulate Database Failure'
             }}
           </button>
-        
+
           <div
             v-if="databaseFailureMessage"
             class="
@@ -1212,7 +1227,7 @@ async function simulateDatabaseFailure() {
             >
               {{ databaseFailureMessage }}
             </p>
-          
+
             <div
               v-if="databaseRollbackResult"
               class="
@@ -1233,27 +1248,27 @@ async function simulateDatabaseFailure() {
                   }}
                 </strong>
               </p>
-            
+
               <p>
                 Version before:
                 {{ databaseRollbackResult.beforeVersion }}
               </p>
-            
+
               <p>
                 Version after:
                 {{ databaseRollbackResult.afterVersion }}
               </p>
-            
+
               <p>
                 Status before:
                 {{ databaseRollbackResult.beforeStatus }}
               </p>
-            
+
               <p>
                 Status after:
                 {{ databaseRollbackResult.afterStatus }}
               </p>
-            
+
               <p class="break-all">
                 Trace ID:
                 {{ databaseRollbackResult.traceId }}
@@ -1269,7 +1284,7 @@ async function simulateDatabaseFailure() {
             border
             border-amber-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
           "
         >
@@ -1285,7 +1300,7 @@ async function simulateDatabaseFailure() {
             >
               Manager Action
             </p>
-          
+
             <h2
               class="
                 mt-2
@@ -1296,7 +1311,7 @@ async function simulateDatabaseFailure() {
             >
               Full Refund
             </h2>
-          
+
             <p
               class="
                 mt-2
@@ -1310,7 +1325,31 @@ async function simulateDatabaseFailure() {
               Inventory will not be restocked
               automatically.
             </p>
-          
+
+            <label class="mt-5 block">
+              <span
+                class="text-sm font-medium text-brew-900"
+              >
+                Refund reason
+              </span>
+
+              <p
+                class="mt-1 text-sm text-brew-500"
+              >
+                A reason is required because this refund
+                is recorded in the audit trail.
+              </p>
+
+              <textarea
+                v-model.trim="refundReason"
+                rows="3"
+                maxlength="500"
+                required
+                placeholder="Example: Customer received incorrect order"
+                class="mt-2 w-full resize-none rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 outline-none focus:border-brew-500"
+              />
+            </label>
+
             <p
               v-if="refundError"
               class="
@@ -1322,7 +1361,7 @@ async function simulateDatabaseFailure() {
             >
               {{ refundError }}
             </p>
-          
+
             <div class="mt-5">
               <button
                 type="button"
@@ -1362,7 +1401,7 @@ async function simulateDatabaseFailure() {
           border
           border-brew-200
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -1381,7 +1420,7 @@ async function simulateDatabaseFailure() {
             mt-5
             overflow-x-auto
           "
-        >
+         tabindex="0" role="region" aria-label="Order items, scroll horizontally for more columns">
           <table
             class="
               w-full
@@ -1507,7 +1546,7 @@ async function simulateDatabaseFailure() {
           border
           border-brew-200
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -1571,7 +1610,7 @@ async function simulateDatabaseFailure() {
                       payment.transactionType,
                     )
                   }}
-                  ·
+                  Â·
                   {{ payment.method }}
                 </p>
 
@@ -1637,7 +1676,7 @@ async function simulateDatabaseFailure() {
                 Reference:
                 {{
                   payment.providerReference
-                    || '—'
+                    || 'â€”'
                 }}
               </p>
 
@@ -1673,7 +1712,7 @@ async function simulateDatabaseFailure() {
               <span
                 v-if="payment.failureMessage"
               >
-                —
+                â€”
                 {{ payment.failureMessage }}
               </span>
             </div>
@@ -1689,7 +1728,7 @@ async function simulateDatabaseFailure() {
           border
           border-brew-200
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -1741,7 +1780,7 @@ async function simulateDatabaseFailure() {
           >
             <div
               class="
-                flex
+                flex flex-wrap
                 items-start
                 justify-between
                 gap-4
@@ -1832,7 +1871,7 @@ async function simulateDatabaseFailure() {
           border
           border-brew-200
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -1866,7 +1905,7 @@ async function simulateDatabaseFailure() {
             mt-5
             overflow-x-auto
           "
-        >
+         tabindex="0" role="region" aria-label="Order audit history, scroll horizontally for more columns">
           <table
             class="
               w-full
@@ -1894,11 +1933,11 @@ async function simulateDatabaseFailure() {
                 </th>
 
                 <th class="py-3 pr-5">
-                  On Hand Δ
+                  On Hand Î”
                 </th>
 
                 <th class="py-3 pr-5">
-                  Reserved Δ
+                  Reserved Î”
                 </th>
 
                 <th class="py-3 pr-5">

@@ -12,7 +12,9 @@ const {
 
 const accountDestination = computed(() => {
   const roles =
-    (user.value as any)?.roles ?? []
+  getUserRoles(
+    user.value,
+  )
 
   if (roles.includes('ADMIN')) {
     return '/admin'
@@ -31,7 +33,9 @@ const accountDestination = computed(() => {
 
 const accountLabel = computed(() => {
   const roles =
-    (user.value as any)?.roles ?? []
+  getUserRoles(
+    user.value,
+  )
 
   if (
     roles.includes('ADMIN')
@@ -82,7 +86,7 @@ const accountLabel = computed(() => {
         class="relative z-20 border-b border-brew-900/10"
       >
         <div
-          class="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8"
+          class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-6 lg:px-8"
         >
           <!-- BRAND -->
           <NuxtLink
@@ -176,12 +180,28 @@ const accountLabel = computed(() => {
         >
           {{ accountLabel }}
         </NuxtLink>
+        <details class="w-full rounded-2xl border border-brew-200 bg-brew-50/95 lg:hidden">
+          <summary class="cursor-pointer px-4 py-3 font-semibold">Menu</summary>
+          <nav aria-label="Mobile navigation" class="flex flex-col gap-1 px-2 pb-2">
+            <NuxtLink to="/" class="rounded-xl px-3 py-3">Home</NuxtLink>
+            <NuxtLink to="/catalog" class="rounded-xl px-3 py-3">Menu</NuxtLink>
+            <a href="#story" class="rounded-xl px-3 py-3">Our Story</a>
+            <a href="#visit" class="rounded-xl px-3 py-3">Visit</a>
+            <template v-if="!loggedIn">
+              <NuxtLink to="/register" class="rounded-xl px-3 py-3 sm:hidden">Create Account</NuxtLink>
+              <NuxtLink to="/login" class="rounded-xl px-3 py-3 sm:hidden">Sign In</NuxtLink>
+            </template>
+            <NuxtLink v-else :to="accountDestination" class="rounded-xl px-3 py-3 sm:hidden">
+              {{ accountLabel }}
+            </NuxtLink>
+          </nav>
+        </details>
         </div>
       </header>
 
       <!-- HERO CONTENT -->
       <div
-        class="relative z-10 mx-auto flex max-w-7xl items-center px-6 pb-24 pt-24 lg:min-h-180 lg:px-8 lg:pb-32 lg:pt-20"
+        class="relative z-10 mx-auto flex max-w-7xl items-center px-4 sm:px-6 pb-24 pt-24 lg:min-h-180 lg:px-8 lg:pb-32 lg:pt-20"
       >
         <div class="max-w-2xl">
           <p
@@ -195,7 +215,7 @@ const accountLabel = computed(() => {
             style="
               font-size:
                 clamp(
-                  3.8rem,
+                  2.5rem,
                   7vw,
                   6.6rem
                 );
@@ -280,7 +300,7 @@ const accountLabel = computed(() => {
       class="border-y border-brew-200 bg-brew-50"
     >
       <div
-        class="mx-auto grid max-w-7xl gap-0 px-6 py-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8"
+        class="mx-auto grid max-w-7xl gap-0 px-4 sm:px-6 py-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8"
       >
         <article
           class="border-brew-200 px-6 py-5 lg:border-r"
@@ -382,7 +402,7 @@ const accountLabel = computed(() => {
       class="bg-white"
     >
       <div
-        class="mx-auto grid max-w-7xl gap-14 px-6 py-24 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-32"
+        class="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 py-24 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-32"
       >
         <div>
           <p
@@ -392,7 +412,7 @@ const accountLabel = computed(() => {
           </p>
 
           <h2
-            class="mt-5 max-w-xl text-4xl font-semibold tracking-tight text-brew-950 md:text-5xl"
+            class="mt-5 max-w-xl text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950 md:text-5xl"
           >
             More than coffee.
             A place to belong.
@@ -427,7 +447,7 @@ const accountLabel = computed(() => {
       class="border-y border-brew-200 bg-brew-100"
     >
       <div
-        class="mx-auto max-w-7xl px-6 py-24 lg:px-8"
+        class="mx-auto max-w-7xl px-4 sm:px-6 py-24 lg:px-8"
       >
         <div
           class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"
@@ -440,7 +460,7 @@ const accountLabel = computed(() => {
             </p>
 
             <h2
-              class="mt-4 text-4xl font-semibold tracking-tight text-brew-950"
+              class="mt-4 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
             >
               Find your favorite.
             </h2>
@@ -459,7 +479,7 @@ const accountLabel = computed(() => {
         >
           <NuxtLink
             to="/catalog"
-            class="group rounded-3xl border border-brew-200 bg-white p-7 transition hover:-translate-y-1 hover:shadow-md"
+            class="group rounded-3xl border border-brew-200 bg-white p-4 sm:p-7 transition hover:-translate-y-1 hover:shadow-md"
           >
             <p
               class="text-xs font-semibold uppercase tracking-[0.16em] text-brew-400"
@@ -489,7 +509,7 @@ const accountLabel = computed(() => {
 
           <NuxtLink
             to="/catalog"
-            class="group rounded-3xl border border-brew-200 bg-white p-7 transition hover:-translate-y-1 hover:shadow-md"
+            class="group rounded-3xl border border-brew-200 bg-white p-4 sm:p-7 transition hover:-translate-y-1 hover:shadow-md"
           >
             <p
               class="text-xs font-semibold uppercase tracking-[0.16em] text-brew-400"
@@ -519,7 +539,7 @@ const accountLabel = computed(() => {
 
           <NuxtLink
             to="/catalog"
-            class="group rounded-3xl border border-brew-200 bg-white p-7 transition hover:-translate-y-1 hover:shadow-md"
+            class="group rounded-3xl border border-brew-200 bg-white p-4 sm:p-7 transition hover:-translate-y-1 hover:shadow-md"
           >
             <p
               class="text-xs font-semibold uppercase tracking-[0.16em] text-brew-400"
@@ -556,7 +576,7 @@ const accountLabel = computed(() => {
       class="bg-brew-900 text-brew-50"
     >
       <div
-        class="mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-2 lg:items-end lg:px-8"
+        class="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 py-24 lg:grid-cols-2 lg:items-end lg:px-8"
       >
         <div>
           <p
@@ -566,7 +586,7 @@ const accountLabel = computed(() => {
           </p>
 
           <h2
-            class="mt-5 max-w-xl text-4xl font-semibold tracking-tight md:text-5xl"
+            class="mt-5 max-w-xl text-3xl sm:text-4xl font-semibold tracking-tight md:text-5xl"
           >
             Your next coffee
             moment starts here.
@@ -607,7 +627,7 @@ const accountLabel = computed(() => {
       class="border-t border-brew-800 bg-brew-950"
     >
       <div
-        class="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 text-sm text-brew-300 sm:flex-row sm:items-center sm:justify-between lg:px-8"
+        class="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 py-8 text-sm text-brew-300 sm:flex-row sm:items-center sm:justify-between lg:px-8"
       >
         <div>
           <p

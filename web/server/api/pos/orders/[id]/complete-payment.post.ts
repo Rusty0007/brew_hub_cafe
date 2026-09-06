@@ -58,6 +58,11 @@ export default defineEventHandler(
       },
     )
 
+    const requestContext =
+      getBrewHubRequestContext(
+      event,
+    )
+
     const query =
       getQuery(
         event,
@@ -150,6 +155,7 @@ export default defineEventHandler(
 
             simulateFailure,
           },
+          requestContext.traceId,
         )
 
       if (

@@ -25,7 +25,6 @@ const {
   data,
   pending,
   error,
-  refresh,
 } = await useFetch<{
   products: ManagedProduct[]
 }>(
@@ -53,7 +52,7 @@ const inactiveCount = computed(
 
 <template>
   <section
-    class="mx-auto max-w-7xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-7xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <NuxtLink
       to="/staff/manager"
@@ -73,7 +72,7 @@ const inactiveCount = computed(
         </p>
 
         <h1
-          class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+          class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
         >
           Catalog Management
         </h1>
@@ -169,7 +168,7 @@ const inactiveCount = computed(
     <div
       v-else
       class="mt-8 overflow-x-auto rounded-3xl border border-brew-200 bg-white"
-    >
+     tabindex="0" role="region" aria-label="Products, scroll horizontally for more columns">
       <table
         class="w-full text-left"
         style="min-width: 850px;"

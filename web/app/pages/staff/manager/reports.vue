@@ -140,7 +140,7 @@ async function refreshReport() {
     class="
       mx-auto
       max-w-7xl
-      px-6
+      px-4 sm:px-6
       py-10
       lg:px-8
     "
@@ -186,7 +186,7 @@ async function refreshReport() {
         <h1
           class="
             mt-2
-            text-4xl
+            text-3xl sm:text-4xl
             font-semibold
             tracking-tight
             text-brew-950
@@ -247,7 +247,7 @@ async function refreshReport() {
         border
         border-brew-200
         bg-white
-        p-10
+        p-4 sm:p-10
         text-center
         text-brew-500
       "
@@ -264,7 +264,7 @@ async function refreshReport() {
         border
         border-red-200
         bg-red-50
-        p-6
+        p-4 sm:p-6
         text-red-700
       "
     >
@@ -340,7 +340,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -390,7 +390,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -436,7 +436,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -486,7 +486,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -536,7 +536,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -593,7 +593,7 @@ async function refreshReport() {
               border
               border-brew-200
               bg-white
-              p-6
+              p-4 sm:p-6
               shadow-sm
             "
           >
@@ -654,7 +654,7 @@ async function refreshReport() {
             border
             border-brew-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
             xl:col-span-2
           "
@@ -703,7 +703,7 @@ async function refreshReport() {
               mt-5
               overflow-x-auto
             "
-          >
+           tabindex="0" role="region" aria-label="Top products, scroll horizontally for more columns">
             <table
               class="
                 w-full
@@ -816,7 +816,7 @@ async function refreshReport() {
             border
             border-brew-200
             bg-white
-            p-6
+            p-4 sm:p-6
             shadow-sm
           "
         >
@@ -935,7 +935,7 @@ async function refreshReport() {
           border
           border-brew-200
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
         "
       >
@@ -1031,7 +1031,7 @@ async function refreshReport() {
             mt-6
             overflow-x-auto
           "
-        >
+         tabindex="0" role="region" aria-label="Inventory report, scroll horizontally for more columns">
           <table
             class="
               w-full

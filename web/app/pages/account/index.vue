@@ -52,7 +52,7 @@ const fullName = computed(() => {
 
 <template>
   <section
-    class="mx-auto max-w-5xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-5xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <NuxtLink
       to="/"
@@ -84,7 +84,7 @@ const fullName = computed(() => {
         </p>
 
         <h1
-          class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+          class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
         >
           Welcome, {{ customer.firstName }}
         </h1>
@@ -97,12 +97,14 @@ const fullName = computed(() => {
         </p>
       </div>
 
+    <DashboardRoleDashboard role="customer" />
+
       <div
         class="mt-10 grid gap-6 lg:grid-cols-[1.4fr_1fr]"
       >
         <!-- PROFILE -->
         <article
-          class="rounded-3xl border border-brew-200 bg-white p-8 shadow-sm"
+          class="rounded-3xl border border-brew-200 bg-white p-4 sm:p-8 shadow-sm"
         >
           <div
             class="flex items-center justify-between gap-5"
@@ -204,7 +206,7 @@ const fullName = computed(() => {
 
         <!-- QUICK ACTIONS -->
         <aside
-          class="rounded-3xl border border-brew-200 bg-brew-50 p-8"
+          class="rounded-3xl border border-brew-200 bg-brew-50 p-4 sm:p-8"
         >
           <p
             class="text-xs font-semibold uppercase tracking-[0.18em] text-brew-500"
@@ -274,11 +276,10 @@ const fullName = computed(() => {
         </aside>
       </div>
     </template>
-  </section>
 
   <div
   v-if="showLeaveWarning"
-  class="fixed inset-x-0 top-24 z-100 mx-auto w-full max-w-lg px-6"
+  class="fixed inset-x-0 top-24 z-100 mx-auto w-full max-w-lg max-h-[calc(100dvh-7rem)] overflow-y-auto px-4 sm:px-6"
 >
   <div
     class="rounded-2xl border border-brew-200 bg-white p-5 shadow-xl"
@@ -298,7 +299,7 @@ const fullName = computed(() => {
     </p>
 
     <div
-      class="mt-4 flex justify-end gap-3"
+      class="mt-4 flex flex-wrap justify-end gap-3"
     >
       <button
         type="button"
@@ -318,4 +319,5 @@ const fullName = computed(() => {
     </div>
   </div>
 </div>
+</section>
 </template>

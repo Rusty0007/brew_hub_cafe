@@ -368,6 +368,7 @@ export default defineEventHandler(
             providerReference:
               `TEST-ORDER-${orderId}`,
           },
+          requestContext.traceId,
         )
       
       logInfo(

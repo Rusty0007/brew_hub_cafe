@@ -102,11 +102,12 @@ async function register() {
       ?? '/catalog'
     )
   }
-  catch (error: any) {
+  catch (error: unknown) {
     errorMessage.value =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
-      ?? 'Unable to create account.'
+      getApiErrorMessage(
+      error,
+      'Unable to create account.',
+    )
   }
   finally {
     submitting.value = false
@@ -234,7 +235,7 @@ async function register() {
             </p>
 
             <h2
-              class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+              class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
             >
               Create your account
             </h2>

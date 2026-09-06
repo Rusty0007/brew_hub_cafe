@@ -7,8 +7,17 @@ import {
 } from '#server/domains/reporting/service'
 
 import {
+  getBrewHubRequestContext,
   updateBrewHubRequestContext,
 } from '#server/utils/request-context'
+
+import {
+  recordPerformanceSample,
+} from '#server/domains/observability/service'
+
+import {
+  startPerformanceTimer,
+} from '#server/domains/observability/performance'
 
 export default defineEventHandler(
   async (event) => {
@@ -20,8 +29,15 @@ export default defineEventHandler(
       ],
     )
 
+    const reportPerformanceTimer =
+      startPerformanceTimer()
+
     const report =
       await getManagerReportSummary()
+
+    const reportDurationMs =
+      reportPerformanceTimer
+      .elapsedMs()
 
     updateBrewHubRequestContext(
       event,
@@ -30,6 +46,36 @@ export default defineEventHandler(
           report.branch.id,
       },
     )
+
+    const reportContext =
+      getBrewHubRequestContext(
+      event,
+    )
+
+    void recordPerformanceSample({
+      operation:
+        'report.standard',
+
+      durationMs:
+        reportDurationMs,
+
+      requestId:
+        reportContext.requestId,
+
+      traceId:
+        reportContext.traceId,
+
+      branchId:
+        report.branch.id,
+
+      result:
+        'success',
+
+      metadata: {
+        reportType:
+          'manager.summary',
+      },
+    })
 
     return {
       report,

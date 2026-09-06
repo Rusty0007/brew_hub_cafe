@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 import {
-  findUserByEmail,
-  findUserByUsername,
-} from '#server/domains/authentication/repository'
+  findAuthenticationUserByEmail,
+  findAuthenticationUserByUsername,
+} from '#server/domains/authentication/service'
 
 import {
   findCustomerByEmail,
@@ -82,9 +82,9 @@ export async function registerCustomer(
   input: RegisterCustomerInput,
 ) {
   const existingUsername =
-    await findUserByUsername(
-      input.username,
-    )
+  await findAuthenticationUserByUsername(
+    input.username,
+  )
 
   if (existingUsername) {
     throw createError({
@@ -95,9 +95,9 @@ export async function registerCustomer(
   }
 
   const existingUserEmail =
-    await findUserByEmail(
-      input.email,
-    )
+  await findAuthenticationUserByEmail(
+    input.email,
+  )
 
   if (existingUserEmail) {
     throw createError({

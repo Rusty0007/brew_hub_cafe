@@ -71,11 +71,12 @@ async function createAccount() {
     form.confirmPassword = ''
     form.role = 'CASHIER'
   }
-  catch (error: any) {
+  catch (error: unknown) {
     errorMessage.value =
-      error?.data?.statusMessage
-      ?? error?.statusMessage
-      ?? 'Unable to create staff account.'
+      getApiErrorMessage(
+      error,
+      'Unable to create staff account.',
+    )
   }
   finally {
     submitting.value = false
@@ -85,7 +86,7 @@ async function createAccount() {
 
 <template>
   <section
-    class="mx-auto max-w-3xl px-6 py-14 lg:px-8"
+    class="mx-auto max-w-3xl px-4 sm:px-6 py-14 lg:px-8"
   >
     <div class="mb-10">
       <NuxtLink
@@ -102,7 +103,7 @@ async function createAccount() {
       </p>
 
       <h1
-        class="mt-3 text-4xl font-semibold tracking-tight text-brew-950"
+        class="mt-3 text-3xl sm:text-4xl font-semibold tracking-tight text-brew-950"
       >
         Create Staff Account
       </h1>
@@ -116,7 +117,7 @@ async function createAccount() {
     </div>
 
     <form
-      class="rounded-3xl border border-brew-200 bg-white p-8 shadow-sm"
+      class="rounded-3xl border border-brew-200 bg-white p-4 sm:p-8 shadow-sm"
       @submit.prevent="createAccount"
     >
       <div
@@ -312,7 +313,7 @@ async function createAccount() {
       </div>
 
       <div
-        class="mt-8 flex items-center justify-end gap-3"
+        class="mt-8 flex flex-wrap items-center justify-end gap-3"
       >
         <NuxtLink
           to="/admin/users"

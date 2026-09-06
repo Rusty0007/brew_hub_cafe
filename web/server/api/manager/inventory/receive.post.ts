@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import { requireUser } from '~~/server/domains/authentication/session'
@@ -78,8 +76,13 @@ export default defineEventHandler(
       })
     }
 
+    const requestContext =
+      getBrewHubRequestContext(
+      event,
+    )
+
     const traceId =
-      randomUUID()
+      requestContext.traceId
 
     const result =
       await receiveInventoryStock({

@@ -24,6 +24,15 @@ import {
 } from '#server/domains/payment/service'
 
 import {
+  recordCheckoutStage,
+  recordPerformanceSample,
+} from '#server/domains/observability/service'
+
+import {
+  startPerformanceTimer,
+} from '#server/domains/observability/performance'
+
+import {
   logInfo,
   logWarn,
 } from '#server/utils/logger'
@@ -490,6 +499,7 @@ export async function createPosOrder(
 export async function prepareCustomerOrderForPayment(
   userId: number,
   orderId: number,
+  traceId: string,
 ) {
   /*
    * 1. Resolve logged-in user
@@ -605,82 +615,269 @@ export async function prepareCustomerOrderForPayment(
    * this attempt share one trace ID.
    */
 
-  const traceId =
-  randomUUID()
-
   const reservationExpiresAt =
-  new Date(
-    Date.now()
-      + 15 * 60 * 1000,
-  )
+    new Date(
+      Date.now()
+        + 15 * 60 * 1000,
+    )
 
   const reservationIds: number[] =
     []
 
+  /*
+   * The existing outer try/catch
+   * remains responsible for
+   * reservation compensation.
+   */
   try {
     /*
-     * 5. Reserve every inventory-tracked
-     * product in the order.
+     * Task 10:
+     * measure only the actual
+     * inventory reservation stage.
      */
-    for (const item of items) {
-      const product =
-        productMap.get(
-          item.productId,
-        )
+    const reservationPerformanceTimer =
+      startPerformanceTimer()
 
-      if (!product) {
-        throw createError({
-          statusCode: 409,
-          statusMessage:
-            'Order product is unavailable',
-        })
+    try {
+      /*
+       * 5. Reserve every
+       * inventory-tracked product.
+       */
+      for (const item of items) {
+        const product =
+          productMap.get(
+            item.productId,
+          )
+
+        if (!product) {
+          throw createError({
+            statusCode: 409,
+            statusMessage:
+              'Order product is unavailable',
+          })
+        }
+
+        /*
+         * Non-inventory products do not
+         * require reservations.
+         */
+        if (
+          !product.trackInventory
+        ) {
+          continue
+        }
+
+        const quantity =
+          Number(
+            item.quantity,
+          )
+
+        if (
+          !Number.isFinite(
+            quantity,
+          )
+          || quantity <= 0
+        ) {
+          throw createError({
+            statusCode: 500,
+            statusMessage:
+              'Order contains an invalid quantity',
+          })
+        }
+
+        const {
+          reservationId,
+        } =
+          await reserveStockForOrder({
+            orderId:
+              order.id,
+
+            productId:
+              item.productId,
+
+            quantity,
+
+            expiresAt:
+              reservationExpiresAt,
+
+            userId,
+
+            traceId,
+          })
+
+        reservationIds.push(
+          reservationId,
+        )
       }
 
       /*
-       * Non-inventory products do not
-       * require reservations.
+       * Stop immediately after the
+       * reservation loop succeeds.
+       *
+       * The transition and reload
+       * below are NOT included.
        */
-      if (!product.trackInventory) {
-        continue
-      }
+      const reservationDurationMs =
+        reservationPerformanceTimer
+          .elapsedMs()
 
-      const quantity =
-        Number(
-          item.quantity,
-        )
+      void recordPerformanceSample({
+        operation:
+          'inventory.reserve',
 
-      if (
-        !Number.isFinite(quantity)
-        || quantity <= 0
-      ) {
-        throw createError({
-          statusCode: 500,
-          statusMessage:
-            'Order contains an invalid quantity',
-        })
-      }
+        durationMs:
+          reservationDurationMs,
 
-      const { reservationId } =
-        await reserveStockForOrder({
-          orderId:
-            order.id,
+        traceId,
 
-          productId:
-            item.productId,
+        userId,
 
-          quantity,
+        branchId:
+          order.branchId,
 
-          expiresAt:
-            reservationExpiresAt,
+        orderId:
+          order.id,
 
-          userId,
+        source:
+          'CUSTOMER',
 
-          traceId,
-        })
+        result:
+          'success',
 
-      reservationIds.push(
-        reservationId,
-      )
+        metadata: {
+          reservationCount:
+            reservationIds.length,
+
+          itemCount:
+            items.length,
+        },
+      })
+
+      void recordCheckoutStage({
+        stage:
+          'inventory.reserve',
+
+        durationMs:
+          reservationDurationMs,
+
+        traceId,
+
+        userId,
+
+        branchId:
+          order.branchId,
+
+        orderId:
+          order.id,
+
+        source:
+          'CUSTOMER',
+
+        result:
+          'success',
+
+        metadata: {
+          reservationCount:
+            reservationIds.length,
+
+          itemCount:
+            items.length,
+        },
+      })
+
+
+    }
+    catch (reservationError) {
+      /*
+       * Capture failure time BEFORE
+       * the outer catch performs
+       * compensation.
+       */
+      const reservationDurationMs =
+        reservationPerformanceTimer
+          .elapsedMs()
+
+      const failureMessage =
+        reservationError
+          instanceof Error
+          ? reservationError.message
+          : 'Inventory reservation failed'
+
+      void recordPerformanceSample({
+        operation:
+          'inventory.reserve',
+
+        durationMs:
+          reservationDurationMs,
+
+        traceId,
+
+        userId,
+
+        branchId:
+          order.branchId,
+
+        orderId:
+          order.id,
+
+        source:
+          'CUSTOMER',
+
+        result:
+          'failed',
+
+        metadata: {
+          reservationCount:
+            reservationIds.length,
+
+          itemCount:
+            items.length,
+
+          message:
+            failureMessage,
+        },
+      })
+
+      void recordCheckoutStage({
+        stage:
+          'inventory.reserve',
+
+        durationMs:
+          reservationDurationMs,
+
+        traceId,
+
+        userId,
+
+        branchId:
+          order.branchId,
+
+        orderId:
+          order.id,
+
+        source:
+          'CUSTOMER',
+
+        result:
+          'failed',
+
+        metadata: {
+          reservationCount:
+            reservationIds.length,
+
+          itemCount:
+            items.length,
+
+          message:
+            failureMessage,
+        },
+      })
+
+      /*
+       * Re-throw into the existing
+       * outer catch below.
+       */
+      throw reservationError
     }
 
     /*
@@ -688,6 +885,9 @@ export async function prepareCustomerOrderForPayment(
      * so move the order:
      *
      * DRAFT -> PENDING_PAYMENT
+     *
+     * This is intentionally OUTSIDE
+     * the Task 10 measurement.
      */
     const transition =
       await transitionOrderStatus(
@@ -711,7 +911,6 @@ export async function prepareCustomerOrderForPayment(
         currentOrder?.status
         === 'PENDING_PAYMENT'
       ) {
-
         return normalizeOrder(
           currentOrder,
         )
@@ -727,6 +926,9 @@ export async function prepareCustomerOrderForPayment(
     /*
      * Reload the complete order after
      * changing its status.
+     *
+     * Also outside the Task 10
+     * inventory reservation timer.
      */
     const updatedOrder =
       await findOrderById(
@@ -752,6 +954,9 @@ export async function prepareCustomerOrderForPayment(
      * If an earlier product was reserved
      * but a later reservation fails,
      * release the successful reservations.
+     *
+     * This happens AFTER the Task 10
+     * failure duration was captured.
      */
     for (
       const reservationId
@@ -786,6 +991,7 @@ export async function prepareCustomerOrderForPayment(
 export async function preparePosOrderForPayment(
   userId: number,
   orderId: number,
+  traceId: string,
 ) {
   /*
    * 1. Load the POS order.
@@ -896,9 +1102,6 @@ export async function preparePosOrderForPayment(
       ),
     )
 
-  const traceId =
-    randomUUID()
-
   const reservationStartedAtMs =
   Date.now()
 
@@ -914,6 +1117,15 @@ export async function preparePosOrderForPayment(
 
   const reservationIds: number[] =
     []
+
+    try {
+  /*
+   * Task 10:
+   * measure only the actual POS
+   * inventory reservation stage.
+   */
+  const reservationPerformanceTimer =
+    startPerformanceTimer()
 
   try {
     /*
@@ -934,7 +1146,9 @@ export async function preparePosOrderForPayment(
         })
       }
 
-      if (!product.trackInventory) {
+      if (
+        !product.trackInventory
+      ) {
         continue
       }
 
@@ -944,7 +1158,9 @@ export async function preparePosOrderForPayment(
         )
 
       if (
-        !Number.isFinite(quantity)
+        !Number.isFinite(
+          quantity,
+        )
         || quantity <= 0
       ) {
         throw createError({
@@ -954,7 +1170,9 @@ export async function preparePosOrderForPayment(
         })
       }
 
-      const { reservationId } =
+      const {
+        reservationId,
+      } =
         await reserveStockForOrder({
           orderId:
             order.id,
@@ -976,6 +1194,181 @@ export async function preparePosOrderForPayment(
         reservationId,
       )
     }
+
+    /*
+     * Stop immediately after all
+     * POS reservations succeed.
+     *
+     * Transition/reload work below
+     * is intentionally excluded.
+     */
+    const reservationDurationMs =
+      reservationPerformanceTimer
+        .elapsedMs()
+
+    void recordPerformanceSample({
+      operation:
+        'inventory.reserve',
+
+      durationMs:
+        reservationDurationMs,
+
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'POS',
+
+      result:
+        'success',
+
+      metadata: {
+        reservationCount:
+          reservationIds.length,
+
+        itemCount:
+          items.length,
+      },
+    })
+
+    void recordCheckoutStage({
+      stage:
+        'inventory.reserve',
+
+      durationMs:
+        reservationDurationMs,
+
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'POS',
+
+      result:
+        'success',
+
+      metadata: {
+        reservationCount:
+          reservationIds.length,
+
+        itemCount:
+          items.length,
+      },
+    })
+  }
+  catch (reservationError) {
+    /*
+     * Capture the failed reservation
+     * duration BEFORE the outer catch
+     * performs compensation.
+     */
+    const reservationDurationMs =
+      reservationPerformanceTimer
+        .elapsedMs()
+
+    const failureMessage =
+      reservationError
+        instanceof Error
+        ? reservationError.message
+        : 'Inventory reservation failed'
+
+    void recordPerformanceSample({
+      operation:
+        'inventory.reserve',
+
+      durationMs:
+        reservationDurationMs,
+
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'POS',
+
+      result:
+        'failed',
+
+      metadata: {
+        reservationCount:
+          reservationIds.length,
+
+        itemCount:
+          items.length,
+
+        message:
+          failureMessage,
+      },
+    })
+
+    void recordCheckoutStage({
+      stage:
+        'inventory.reserve',
+
+      durationMs:
+        reservationDurationMs,
+
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      source:
+        'POS',
+
+      result:
+        'failed',
+
+      metadata: {
+        reservationCount:
+          reservationIds.length,
+
+        itemCount:
+          items.length,
+
+        message:
+          failureMessage,
+      },
+    })
+
+    /*
+     * Existing outer catch will
+     * perform compensation and
+     * preserve Task 9 logging.
+     */
+    throw reservationError
+  }
+
+  /*
+   * 5. All reservations succeeded.
+   *
+   * DRAFT -> PENDING_PAYMENT
+   */
 
     /*
      * 5. All reservations succeeded.
@@ -1005,25 +1398,25 @@ export async function preparePosOrderForPayment(
           'inventory.reserve',
           {
             traceId,
-          
+
             userId,
-          
+
             branchId:
               order.branchId,
-          
+
             orderId:
               order.id,
-          
+
             reservationCount:
               reservationIds.length,
-          
+
             durationMs:
               Date.now()
               - reservationStartedAtMs,
-          
+
             result:
               'success',
-          
+
             source:
               'POS',
           },
@@ -1058,25 +1451,25 @@ export async function preparePosOrderForPayment(
       'inventory.reserve',
       {
         traceId,
-      
+
         userId,
-      
+
         branchId:
           order.branchId,
-      
+
         orderId:
           order.id,
-      
+
         reservationCount:
           reservationIds.length,
-      
+
         durationMs:
           Date.now()
           - reservationStartedAtMs,
-      
+
         result:
           'success',
-      
+
         source:
           'POS',
       },
@@ -1117,43 +1510,43 @@ export async function preparePosOrderForPayment(
        */
           }
         }
-      
+
         const failureMessage =
           error instanceof Error
             ? error.message
             : 'Inventory reservation failed'
-      
+
         logWarn(
           'inventory_reservation_failed',
           {
             traceId,
-          
+
             userId,
-          
+
             branchId:
               order.branchId,
-          
+
             orderId:
               order.id,
-          
+
             reservationCount:
               reservationIds.length,
-          
+
             durationMs:
               Date.now()
               - reservationStartedAtMs,
-          
+
             result:
               'failed',
-          
+
             source:
               'POS',
-          
+
             message:
               failureMessage,
           },
         )
-      
+
         throw error
       }
 }
@@ -1162,6 +1555,7 @@ export async function cancelCustomerOrder(
   userId: number,
   orderId: number,
   reason: string,
+  traceId: string,
 ) {
   /*
    * 1. Resolve logged-in user
@@ -1242,9 +1636,6 @@ export async function cancelCustomerOrder(
    * - writes audit log
    */
 
-  const traceId =
-  randomUUID()
-  
   await cancelOrder(
     order.id,
     userId,
@@ -1279,6 +1670,33 @@ export async function cancelCustomerOrder(
         'Order cancellation did not finish',
     })
   }
+
+  logInfo(
+    'order.cancelled',
+    {
+      traceId,
+
+      userId,
+
+      branchId:
+        cancelledOrder.branchId,
+
+      orderId:
+        cancelledOrder.id,
+
+      source:
+        'CUSTOMER',
+
+      result:
+        'success',
+
+      reason:
+        trimmedReason,
+
+      previousStatus:
+        order.status,
+    },
+  )
 
   return normalizeOrder(
     cancelledOrder,
@@ -1399,6 +1817,33 @@ export async function cancelStaffOrder(
         'Order cancellation did not finish',
     })
   }
+
+  logInfo(
+    'order.cancelled',
+    {
+      traceId,
+
+      userId,
+
+      branchId:
+        cancelledOrder.branchId,
+
+      orderId:
+        cancelledOrder.id,
+
+      source:
+        'STAFF',
+
+      result:
+        'success',
+
+      reason:
+        parsed.data.reason,
+
+      previousStatus:
+        order.status,
+    },
+  )
 
   return normalizeOrder(
     cancelledOrder,

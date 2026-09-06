@@ -5,6 +5,7 @@ import {
 } from 'drizzle-orm'
 
 import {
+  auditLogs,
   categories,
   products,
 } from '#server/db/schema'
@@ -161,28 +162,174 @@ interface UpdateManagedProductInput {
   isActive?: boolean
 }
 
+interface PriceChangeAuditContext {
+  actorUserId: number
+  reason: string
+  traceId?: string | null
+}
+
 export async function updateManagedProduct(
   productId: number,
   input: UpdateManagedProductInput,
+  priceAudit?: PriceChangeAuditContext,
 ) {
   const db = useDb()
 
-  const rows = await db
-    .update(products)
-    .set(input)
-    .where(
-      eq(products.id, productId),
-    )
-    .returning({
-      id: products.id,
-      sku: products.sku,
-      name: products.name,
-      description: products.description,
-      basePrice: products.basePrice,
-      categoryId: products.categoryId,
-      trackInventory: products.trackInventory,
-      isActive: products.isActive,
-    })
+  return await db.transaction(
+    async (tx) => {
+      const currentRows =
+        await tx
+          .select({
+            id:
+              products.id,
 
-  return rows[0] ?? null
+            basePrice:
+              products.basePrice,
+          })
+          .from(
+            products,
+          )
+          .where(
+            eq(
+              products.id,
+              productId,
+            ),
+          )
+          .limit(1)
+
+      const currentProduct =
+        currentRows[0]
+
+      if (!currentProduct) {
+        return null
+      }
+
+      const rows =
+        await tx
+          .update(
+            products,
+          )
+          .set(
+            input,
+          )
+          .where(
+            eq(
+              products.id,
+              productId,
+            ),
+          )
+          .returning({
+            id:
+              products.id,
+
+            sku:
+              products.sku,
+
+            name:
+              products.name,
+
+            description:
+              products.description,
+
+            basePrice:
+              products.basePrice,
+
+            categoryId:
+              products.categoryId,
+
+            trackInventory:
+              products.trackInventory,
+
+            isActive:
+              products.isActive,
+          })
+
+      const updatedProduct =
+        rows[0]
+
+      if (!updatedProduct) {
+        return null
+      }
+
+      const priceChanged =
+        input.basePrice !== undefined
+        && Number(
+          currentProduct.basePrice,
+        )
+        !== Number(
+          updatedProduct.basePrice,
+        )
+
+      if (priceChanged) {
+  const auditReason =
+    priceAudit?.reason.trim()
+
+  /*
+   * A price modification is an
+   * audit-sensitive operation.
+   *
+   * Never allow the product price
+   * update to commit without the
+   * actor and reason needed for its
+   * audit record.
+   *
+   * Because this runs inside the same
+   * transaction as the product update,
+   * throwing here rolls the price
+   * update back as well.
+   */
+  if (
+    !priceAudit
+    || !auditReason
+    ) {
+      throw new Error(
+        'Price change requires audit context and reason',
+      )
+    }
+
+    await tx
+      .insert(
+        auditLogs,
+      )
+      .values({
+        actorUserId:
+          priceAudit.actorUserId,
+
+        action:
+          'product.price_change',
+
+        resourceType:
+          'product',
+
+        resourceId:
+          String(
+            productId,
+          ),
+
+        beforeData: {
+          basePrice:
+            Number(
+              currentProduct.basePrice,
+            ),
+        },
+
+        afterData: {
+          basePrice:
+            Number(
+              updatedProduct.basePrice,
+            ),
+        },
+
+        reason:
+          auditReason,
+
+        traceId:
+          priceAudit.traceId
+          ?? null,
+      })
+  }
+
+      return updatedProduct
+    },
+  )
 }

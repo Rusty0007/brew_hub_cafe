@@ -604,7 +604,7 @@ function getApiErrorMessage(
     <!-- Receive Stock panel -->
     <div
       v-if="showReceiveForm"
-      class="mb-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"
+      class="mb-8 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm"
     >
       <div class="mb-6">
         <h2
@@ -760,7 +760,7 @@ function getApiErrorMessage(
     <!-- Adjust Stock panel -->
     <div
       v-if="showAdjustForm"
-      class="mb-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"
+      class="mb-8 rounded-2xl border border-stone-200 bg-white p-4 sm:p-6 shadow-sm"
     >
       <div class="mb-6">
         <h2
@@ -861,7 +861,7 @@ function getApiErrorMessage(
             rows="3"
             placeholder="Explain why the stock quantity is being adjusted."
             class="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-stone-900 outline-none transition focus:border-amber-700"
-          ></textarea>
+          />
         </label>
 
         <div
@@ -900,7 +900,7 @@ function getApiErrorMessage(
     <!-- Loading -->
     <div
       v-if="pending"
-      class="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500"
+      class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
     >
       Loading inventory...
     </div>
@@ -908,7 +908,7 @@ function getApiErrorMessage(
     <!-- Error -->
     <div
       v-else-if="error"
-      class="rounded-2xl border border-red-200 bg-red-50 p-6"
+      class="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-6"
     >
       <p
         class="font-medium text-red-800"
@@ -926,7 +926,7 @@ function getApiErrorMessage(
     <!-- Empty -->
     <div
       v-else-if="inventory.length === 0"
-      class="rounded-2xl border border-stone-200 bg-white p-10 text-center"
+      class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-10 text-center"
     >
       <h2
         class="text-lg font-semibold text-stone-900"
@@ -947,7 +947,7 @@ function getApiErrorMessage(
       v-else
       class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
     >
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Inventory stock levels, scroll horizontally for more columns">
         <table
           class="w-full text-left"
           style="min-width: 900px"
@@ -1116,7 +1116,7 @@ function getApiErrorMessage(
       <!-- Movement loading -->
       <div
         v-if="movementPending"
-        class="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500"
+        class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
       >
         Loading stock movements...
       </div>
@@ -1124,7 +1124,7 @@ function getApiErrorMessage(
       <!-- Movement error -->
       <div
         v-else-if="movementError"
-        class="rounded-2xl border border-red-200 bg-red-50 p-6"
+        class="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-6"
       >
         <p
           class="font-medium text-red-800"
@@ -1142,7 +1142,7 @@ function getApiErrorMessage(
       <!-- No movements -->
       <div
         v-else-if="movements.length === 0"
-        class="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500"
+        class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
       >
         No stock movements yet.
       </div>
@@ -1152,7 +1152,7 @@ function getApiErrorMessage(
         v-else
         class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
       >
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Inventory movement history, scroll horizontally for more columns">
           <table
             class="w-full text-left"
             style="min-width: 1050px"

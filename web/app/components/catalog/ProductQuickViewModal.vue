@@ -38,6 +38,9 @@ const formattedPrice = computed(() => {
 })
 
 let previousBodyOverflow = ''
+let previousFocus: HTMLElement | null = null
+const dialog = ref<HTMLElement | null>(null)
+const closeButton = ref<HTMLButtonElement | null>(null)
 
 function close() {
   emit('close')
@@ -51,11 +54,29 @@ function handleKeydown(
   event: KeyboardEvent,
 ) {
   if (event.key === 'Escape') {
+    event.preventDefault()
     close()
+  }
+
+  if (event.key === 'Tab') {
+    const buttons = dialog.value?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+    const first = buttons?.[0]
+    const last = buttons?.[buttons.length - 1]
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last?.focus()
+    }
+    else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first?.focus()
+    }
   }
 }
 
 onMounted(() => {
+  previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  closeButton.value?.focus({ preventScroll: true })
   previousBodyOverflow =
     document.body.style.overflow
 
@@ -76,6 +97,9 @@ onUnmounted(() => {
     'keydown',
     handleKeydown,
   )
+  if (previousFocus?.isConnected) {
+    previousFocus.focus({ preventScroll: true })
+  }
 })
 </script>
 
@@ -83,19 +107,20 @@ onUnmounted(() => {
   <Teleport to="body">
     <div
       class="
-        fixed inset-0 z-50
+        fixed inset-0 z-[60]
         flex
         items-center justify-center
         bg-black/50
-        px-4 py-8
+        p-4
         backdrop-blur-sm
       "
       @click.self="close"
     >
       <section
+        ref="dialog"
         class="
           relative
-          max-h-[90vh]
+          max-h-[calc(100dvh-2rem)]
           w-full
           max-w-3xl
           overflow-y-auto
@@ -109,11 +134,12 @@ onUnmounted(() => {
       >
         <!-- CLOSE -->
         <button
+          ref="closeButton"
           type="button"
           class="
             absolute
             right-4 top-4 z-10
-            flex size-10
+            flex size-11
             items-center justify-center
             rounded-full
             bg-white/90
@@ -159,7 +185,7 @@ onUnmounted(() => {
               v-else
               class="
                 flex size-full
-                min-h-80
+                min-h-60 sm:min-h-80
                 items-center justify-center
               "
             >
@@ -198,7 +224,7 @@ onUnmounted(() => {
           <div
             class="
               flex flex-col
-              p-7
+              p-4 sm:p-7
               md:p-10
             "
           >

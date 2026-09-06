@@ -10,6 +10,13 @@ let dbQueryCount = 0
 const SLOW_DB_QUERY_THRESHOLD_MS =
   500
 
+let lastSlowDbQuery:
+  | {
+      durationMs: number
+      occurredAtMs: number
+    }
+  | null = null
+
 let slowQueryTotal = 0
 let dbQueryDurationCount = 0
 let dbQueryDurationTotalMs = 0
@@ -70,6 +77,22 @@ export function getDbQueryCount() {
 
 export function getSlowQueryTotal() {
   return slowQueryTotal
+}
+
+export function getLastSlowDbQuery() {
+  if (!lastSlowDbQuery) {
+    return null
+  }
+
+  return {
+    durationMs:
+      lastSlowDbQuery.durationMs,
+
+    occurredAt:
+      new Date(
+        lastSlowDbQuery.occurredAtMs,
+      ).toISOString(),
+  }
 }
 
 export function getDbQueryDurationStats() {
@@ -136,6 +159,12 @@ function recordDbQueryDuration(
 export function useDb() {
   const config = useRuntimeConfig()
 
+  const dbSslEnabled =
+      config.dbSsl === true
+      || String(config.dbSsl)
+        .toLowerCase()
+      === 'true'
+
   if (!config.dbHost) {
     throw new Error('NUXT_DB_HOST is not configured')
   }
@@ -160,6 +189,12 @@ export function useDb() {
         database: config.dbName,
         user: config.dbUser,
         password: config.dbPassword,
+
+        ssl:
+          dbSslEnabled
+            ? true
+            : undefined,
+
         max: 10,
         connectionTimeoutMillis: 5_000,
         idleTimeoutMillis: 30_000,
@@ -258,6 +293,13 @@ export function useDb() {
             >= SLOW_DB_QUERY_THRESHOLD_MS
           ) {
             slowQueryTotal += 1
+
+            lastSlowDbQuery = {
+              durationMs,
+
+              occurredAtMs:
+                Date.now()
+            }
           }
         },
       )

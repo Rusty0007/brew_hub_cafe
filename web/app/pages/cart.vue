@@ -236,7 +236,7 @@ async function placeOrder() {
         border
         border-green-200
         bg-green-50
-        p-6
+        p-4 sm:p-6
       "
     >
       <p
@@ -408,7 +408,7 @@ async function placeOrder() {
         mt-8
         grid
         gap-8
-        lg:grid-cols-[1fr_360px]
+        lg:grid-cols-[minmax(0,1fr)_360px]
       "
     >
       <!-- ITEMS -->
@@ -453,9 +453,9 @@ async function placeOrder() {
             class="
               flex flex-col
               gap-5
-              p-6
-              sm:flex-row
-              sm:items-center
+              p-4 sm:p-6
+              xl:flex-row
+              xl:items-center
               sm:justify-between
             "
           >
@@ -499,7 +499,7 @@ async function placeOrder() {
 
             <div
               class="
-                flex items-center
+                flex flex-wrap items-center
                 gap-4
               "
             >
@@ -518,7 +518,7 @@ async function placeOrder() {
                 <button
                   type="button"
                   class="
-                    flex size-9
+                    flex size-11
                     items-center
                     justify-center
                     rounded-xl
@@ -554,7 +554,7 @@ async function placeOrder() {
                 <button
                   type="button"
                   class="
-                    flex size-9
+                    flex size-11
                     items-center
                     justify-center
                     rounded-xl
@@ -621,7 +621,7 @@ async function placeOrder() {
           border
           border-brew-100
           bg-white
-          p-6
+          p-4 sm:p-6
           shadow-sm
           lg:sticky
           lg:top-24
@@ -712,8 +712,8 @@ async function placeOrder() {
         >
           <div
             class="
-              flex
-              justify-between
+              flex flex-wrap
+              justify-between gap-x-4 gap-y-2
               text-sm
               text-brew-600
             "
@@ -729,9 +729,9 @@ async function placeOrder() {
 
           <div
             class="
-              flex
+              flex flex-wrap
               items-center
-              justify-between
+              justify-between gap-x-4 gap-y-2
               border-t
               border-brew-100
               pt-4

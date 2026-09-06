@@ -7,6 +7,10 @@ import {
   updateManagedProductSchema,
 } from '#server/domains/catalog/management-service'
 
+import {
+  getBrewHubRequestContext,
+} from '#server/utils/request-context'
+
 export default defineEventHandler(
   async (event) => {
     const manager =
@@ -14,6 +18,11 @@ export default defineEventHandler(
         event,
         'MANAGER',
       )
+
+    const requestContext =
+      getBrewHubRequestContext(
+        event,
+    )
 
     const productId = Number(
       getRouterParam(event, 'id'),
@@ -49,10 +58,21 @@ export default defineEventHandler(
     }
 
     const product =
-      await editManagedProduct(
-        productId,
-        parsed.data,
-      )
+  await editManagedProduct(
+    productId,
+    parsed.data,
+    {
+      actorUserId:
+        manager.id,
+
+      reason:
+        parsed.data.reason
+        ?? '',
+
+      traceId:
+        requestContext.traceId,
+    },
+  )
 
     return {
       message:

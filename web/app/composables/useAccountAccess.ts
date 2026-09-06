@@ -4,10 +4,12 @@ export function useAccountAccess() {
     user,
   } = useUserSession()
 
-  const roles = computed<string[]>(
-    () =>
-      (user.value as any)?.roles ?? [],
-  )
+ const roles = computed<string[]>(
+  () =>
+    getUserRoles(
+      user.value,
+    ),
+)
 
   const isAdmin = computed(
     () => roles.value.includes('ADMIN'),
