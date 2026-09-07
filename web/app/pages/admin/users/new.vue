@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 type StaffRole =
   | 'MANAGER'
   | 'CASHIER'
@@ -41,7 +45,7 @@ async function createAccount() {
   submitting.value = true
 
   try {
-    const response = await $fetch<{
+    const response = await $csrfFetch<{
       message: string
       user: {
         id: number

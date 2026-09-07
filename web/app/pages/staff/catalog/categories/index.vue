@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface Category {
   id: number
   name: string
@@ -46,7 +50,7 @@ async function createCategory() {
   successMessage.value = ''
 
   try {
-    await $fetch(
+    await $csrfFetch(
       '/api/staff/catalog/categories',
       {
         method: 'POST',

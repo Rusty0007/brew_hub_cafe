@@ -4,6 +4,13 @@ const {
   $csrfFetch,
 } = useNuxtApp()
 
+const {
+  showConfirm,
+  showSuccess,
+  showError,
+  showWarning,
+} = useAppModal()
+
 definePageMeta({
   middleware: [
     'auth',
@@ -104,14 +111,9 @@ const completingPayment =
 const simulatingPaymentTimeout =
   ref(false)
 
-const paymentVerificationMessage =
-  ref('')
-
 const isDevelopment =
   import.meta.dev
 
-const createOrderError =
-  ref('')
 
 const createdOrder =
   ref<CreatedPosOrder | null>(
@@ -424,7 +426,28 @@ function removeLine(
     )
 }
 
-function clearOrder() {
+async function clearOrder() {
+  if (posLines.value.length === 0) {
+    return
+  }
+
+  const confirmed =
+    await showConfirm({
+      title: 'Clear POS Order?',
+      message:
+        `${totalItems.value} item${totalItems.value === 1 ? '' : 's'} will be removed.\n`
+        + `Current subtotal: ${formatMoney(subtotal.value)}\n\n`
+        + 'This will clear the cashier\'s current order.',
+      primaryLabel: 'Clear Order',
+      secondaryLabel: 'Keep Order',
+      dismissible: true,
+      closeOnBackdrop: false,
+    })
+
+  if (!confirmed) {
+    return
+  }
+
   posLines.value = []
 }
 
@@ -503,20 +526,46 @@ function getApiErrorMessage(
 
 async function submitPosOrder() {
   if (
-    posLines.value.length === 0
-  ) {
-    createOrderError.value =
-      'Add at least one product to the order.'
+  posLines.value.length === 0
+) {
+  showWarning({
+    title: 'No Items in Order',
+    message:
+      'Add at least one product before creating a POS order.',
+    primaryLabel: 'OK',
+  })
 
+  return
+}
+
+
+  const orderTypeLabel =
+    orderType.value === 'DINE_IN'
+      ? 'Dine in'
+      : 'Takeout'
+
+  const confirmed =
+    await showConfirm({
+      title: 'Create POS Order?',
+      message:
+        `${totalItems.value} item${totalItems.value === 1 ? '' : 's'} · ${orderTypeLabel}\n`
+        + `Subtotal: ${formatMoney(subtotal.value)}\n\n`
+        + 'Confirm the cashier order before creating it.',
+      primaryLabel: 'Create Order',
+      secondaryLabel: 'Review Order',
+      dismissible: true,
+      closeOnBackdrop: false,
+    })
+
+  if (!confirmed) {
     return
   }
 
-  createOrderError.value = ''
   creatingOrder.value = true
 
   try {
     const response =
-      await $fetch<CreatePosOrderResponse>(
+      await $csrfFetch<CreatePosOrderResponse>(
         '/api/staff/pos/orders',
         {
           method: 'POST',
@@ -547,14 +596,28 @@ async function submitPosOrder() {
      * it now exists in PostgreSQL.
      */
     posLines.value = []
+
+    showSuccess({
+      title: 'POS Order Created',
+      message:
+        `Order ${response.order.orderNo} was created successfully.\n`
+        + `Total: ${formatMoney(response.order.totalAmount)}`,
+      primaryLabel: 'Continue',
+})
   }
   catch (error: unknown) {
-    createOrderError.value =
-      getApiErrorMessage(
-        error,
-        'Unable to create POS order.',
-      )
-  }
+  const message =
+    getApiErrorMessage(
+      error,
+      'Unable to create POS order.',
+    )
+
+  showError({
+    title: 'POS Order Failed',
+    message,
+    primaryLabel: 'Review Order',
+  })
+}
   finally {
     creatingOrder.value = false
   }
@@ -565,12 +628,11 @@ async function prepareCreatedOrderForPayment() {
     return
   }
 
-  createOrderError.value = ''
   preparingPayment.value = true
 
   try {
     const response =
-      await $fetch<{
+      await $csrfFetch<{
         message: string
         order: CreatedPosOrder
       }>(
@@ -582,13 +644,26 @@ async function prepareCreatedOrderForPayment() {
 
     createdOrder.value =
       response.order
+
+  showSuccess({
+    title: 'Order Ready for Payment',
+    message:
+      `Order ${response.order.orderNo} is now ready for payment.`,
+    primaryLabel: 'Continue',
+    })
   }
   catch (error: unknown) {
-    createOrderError.value =
+    const message =
       getApiErrorMessage(
         error,
         'Unable to prepare POS order for payment.',
       )
+
+    showError({
+      title: 'Payment Preparation Failed',
+      message,
+      primaryLabel: 'OK',
+    })
   }
   finally {
     preparingPayment.value = false
@@ -600,12 +675,11 @@ async function completeCreatedOrderPayment() {
     return
   }
 
-  createOrderError.value = ''
   completingPayment.value = true
 
   try {
     const response =
-      await $fetch<{
+      await $csrfFetch<{
         message: string
 
         result: {
@@ -629,13 +703,26 @@ async function completeCreatedOrderPayment() {
       'order' in response.result
         ? response.result.order
         : response.result
+
+    showSuccess({
+      title: 'Payment Completed',
+      message:
+        `Payment for order ${createdOrder.value.orderNo} was completed successfully.`,
+      primaryLabel: 'Done',
+      })
   }
-  catch (error: unknown) {
-    createOrderError.value =
+    catch (error: unknown) {
+    const message =
       getApiErrorMessage(
         error,
         'Unable to complete POS payment.',
       )
+
+    showError({
+      title: 'Payment Failed',
+      message,
+      primaryLabel: 'OK',
+    })
   }
   finally {
     completingPayment.value = false
@@ -647,13 +734,11 @@ async function simulateCreatedOrderPaymentTimeout() {
     return
   }
 
-  createOrderError.value = ''
-  paymentVerificationMessage.value = ''
   simulatingPaymentTimeout.value = true
 
   try {
     const response =
-      await $fetch<{
+      await $csrfFetch<{
         message: string
 
         result: {
@@ -683,15 +768,26 @@ async function simulateCreatedOrderPaymentTimeout() {
       )
     }
 
-    paymentVerificationMessage.value =
-      response.message
+    showWarning({
+      title: 'Payment Verification Required',
+      message:
+        response.message
+        || 'The payment result could not be confirmed immediately and is now being verified.',
+      primaryLabel: 'OK',
+    })
   }
   catch (error: unknown) {
-    createOrderError.value =
+    const message =
       getApiErrorMessage(
         error,
         'Unable to simulate payment timeout.',
       )
+
+    showError({
+      title: 'Payment Timeout Test Failed',
+      message,
+      primaryLabel: 'OK',
+    })
   }
   finally {
     simulatingPaymentTimeout.value = false
@@ -700,8 +796,6 @@ async function simulateCreatedOrderPaymentTimeout() {
 
 function startNewPosOrder() {
   createdOrder.value = null
-  createOrderError.value = ''
-  paymentVerificationMessage.value = ''
   orderType.value = 'TAKEOUT'
   posLines.value = []
 }
@@ -1474,7 +1568,7 @@ function startNewPosOrder() {
                       )
                     "
                   >
-                    âˆ’
+                    &minus;
                   </button>
 
                   <span
@@ -1590,23 +1684,6 @@ function startNewPosOrder() {
               </span>
             </div>
           </div>
-
-          <p
-  v-if="createOrderError"
-  class="
-    mt-6
-    rounded-xl
-    border
-    border-red-200
-    bg-red-50
-    px-4
-    py-3
-    text-sm
-    text-red-700
-  "
->
-  {{ createOrderError }}
-</p>
 
 <div
   v-if="
@@ -1991,42 +2068,7 @@ function startNewPosOrder() {
                 : 'TESDA: Simulate Payment Timeout'
             }}
           </button>
-
-          <div
-            v-if="paymentVerificationMessage"
-            class="
-              mt-4
-              rounded-xl
-              border
-              border-amber-300
-              bg-amber-50
-              px-4
-              py-4
-            "
-          >
-            <p
-              class="
-                font-semibold
-                text-amber-900
-              "
-            >
-              Payment is being verified
-            </p>
-
-            <p
-              class="
-                mt-1
-                text-sm
-                leading-6
-                text-amber-800
-              "
-            >
-              The payment provider did not return
-              a final result. Do not charge the
-              customer again until the payment
-              status is verified.
-            </p>
-          </div>
+         
         </div>
         </div>
       </aside>

@@ -7,6 +7,10 @@ definePageMeta({
 })
 
 const {
+  $csrfFetch,
+} = useNuxtApp()
+
+const {
   isManager,
 } = useAccountAccess()
 
@@ -335,7 +339,7 @@ async function refundSelectedOrder() {
   refunding.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       `/api/manager/orders/${orderId}/refund`,
       {
         method: 'POST',
@@ -388,7 +392,7 @@ async function cancelSelectedOrder() {
   cancelling.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       `/api/staff/orders/${orderId}/cancel`,
       {
         method: 'POST',
@@ -426,7 +430,7 @@ async function simulateDatabaseFailure() {
      * unexpected because this TESDA test
      * intentionally returns HTTP 503.
      */
-    await $fetch(
+    await $csrfFetch(
       `/api/staff/orders/${orderId}/simulate-database-failure`,
       {
         method:

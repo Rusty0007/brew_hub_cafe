@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface Product {
   id: number
   sku: string
@@ -134,7 +138,7 @@ if (
 saving.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       `/api/staff/catalog/products/${productId}`,
       {
         method: 'PATCH',

@@ -4,6 +4,10 @@ definePageMeta({
   middleware: 'guest',
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 const route = useRoute()
 
 const {
@@ -79,7 +83,7 @@ async function register() {
   submitting.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       '/api/auth/register',
       {
         method: 'POST',

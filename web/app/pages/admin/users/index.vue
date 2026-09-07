@@ -1,10 +1,15 @@
 ﻿<script setup lang="ts">
+
 definePageMeta({
   middleware: [
     'auth',
     'admin',
   ],
 })
+
+const {
+  $csrfFetch,
+} = useNuxtApp()
 
 interface StaffUser {
   id: number
@@ -170,7 +175,7 @@ async function updateRole(
     true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       `/api/admin/users/${user.id}`,
       {
         method: 'PATCH',

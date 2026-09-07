@@ -10,6 +10,10 @@ const {
   fetch: refreshSession,
 } = useUserSession()
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 const cart = useCartStore()
 
 const isLoggingOut = ref(false)
@@ -34,7 +38,7 @@ async function logout() {
   isLoggingOut.value = true
 
   try {
-    await $fetch('/api/auth/logout', {
+    await $csrfFetch('/api/auth/logout', {
       method: 'POST',
     })
 

@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface Category {
   id: number
   name: string
@@ -54,7 +58,7 @@ async function createProduct() {
   submitting.value = true
 
   try {
-    await $fetch<{
+    await $csrfFetch<{
       product: {
         id: number
       }

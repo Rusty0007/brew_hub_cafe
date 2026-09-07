@@ -32,6 +32,12 @@ const username = ref('')
 const password = ref('')
 
 const isSubmitting = ref(false)
+const {
+  showSuccess,
+  showError,
+  showWarning,
+} = useAppModal()
+
 const errorMessage = ref('')
 
 const {
@@ -44,7 +50,6 @@ const {
 
 
 async function submitLogin() {
-  errorMessage.value = ''
   isSubmitting.value = true
 
   try {
@@ -167,6 +172,13 @@ async function submitLogin() {
       }
     }
 
+    showSuccess({
+      title: 'Welcome to BrewHub',
+      message:
+        `Signed in successfully as ${response.user.displayName || response.user.username}.`,
+      primaryLabel: 'Continue',
+    })
+
     await navigateTo(
       redirect,
     )
@@ -228,17 +240,62 @@ async function submitLogin() {
     }
 
     if (
-      statusMessage
-      === 'Invalid username or password'
-      || statusCode === 400
-    ) {
-      errorMessage.value =
-        'Invalid username or password.'
-    }
-    else {
-      errorMessage.value =
-        'Unable to sign in. Please try again.'
-    }
+  statusMessage
+  === 'Invalid username or password'
+  || statusCode === 400
+) {
+  showError({
+    title: 'Sign In Failed',
+    message:
+      'The username or password you entered is incorrect.',
+    primaryLabel: 'Try Again',
+  })
+
+  return
+}
+
+if (statusCode === 403) {
+  showError({
+    title: 'Security Validation Failed',
+    message:
+      'BrewHub could not validate this sign-in request. Refresh the page and try again.',
+    primaryLabel: 'OK',
+  })
+
+  return
+}
+
+if (statusCode === 429) {
+  showWarning({
+    title: 'Too Many Sign In Attempts',
+    message:
+      'Too many sign-in attempts were made. Please wait a moment before trying again.',
+    primaryLabel: 'OK',
+  })
+
+  return
+}
+
+if (
+  statusCode
+  && statusCode >= 500
+) {
+  showError({
+    title: 'BrewHub Server Error',
+    message:
+      'BrewHub could not complete the sign-in request. Please try again shortly.',
+    primaryLabel: 'OK',
+  })
+
+  return
+}
+
+showError({
+  title: 'Unable to Sign In',
+  message:
+    'BrewHub could not complete the sign-in request. Please try again.',
+  primaryLabel: 'OK',
+})
   }
   finally {
     isSubmitting.value = false
@@ -325,15 +382,6 @@ async function submitLogin() {
               class="mt-2 w-full rounded-2xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition placeholder:text-brew-400 focus:border-brew-500 focus:ring-2 focus:ring-brew-100"
               placeholder="Enter your password"
             >
-          </div>
-
-          <!-- Login error -->
-          <div
-            v-if="errorMessage"
-            role="alert"
-            class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
-            {{ errorMessage }}
           </div>
 
           <!-- Submit -->

@@ -3,6 +3,7 @@ definePageMeta({
   layout: false,
 })
 
+
 const {
   loggedIn,
   user,
@@ -47,6 +48,7 @@ const accountLabel = computed(() => {
 
   return 'My Account'
 })
+
 </script>
 
 <template>
@@ -300,6 +302,7 @@ const accountLabel = computed(() => {
         </span>
       </a>
     </section>
+
 
     <!-- EXPERIENCE STRIP -->
     <section

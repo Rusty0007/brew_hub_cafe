@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface InventoryItem {
   id: number
   branchId: number
@@ -238,7 +242,7 @@ async function submitAdjustStock() {
   adjusting.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       '/api/manager/inventory/adjust',
       {
         method: 'POST',
@@ -309,7 +313,7 @@ async function submitReceiveStock() {
   receiving.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       '/api/manager/inventory/receive',
       {
         method: 'POST',

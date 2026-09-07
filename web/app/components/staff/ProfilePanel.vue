@@ -1,4 +1,9 @@
 <script setup lang="ts">
+
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface StaffProfile {
   id: number
   username: string
@@ -31,7 +36,7 @@ async function save() {
   message.value = ''
   saveError.value = ''
   try {
-    data.value = await $fetch<{ profile: StaffProfile }>(endpoint.value, { method: 'PATCH', body: { ...form } })
+    data.value = await $csrfFetch<{ profile: StaffProfile }>(endpoint.value, { method: 'PATCH', body: { ...form } })
     message.value = 'Profile updated. The change and its reason have been recorded.'
   }
   catch (cause) {

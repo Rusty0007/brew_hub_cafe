@@ -64,10 +64,6 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/**': {
-      csurf: false,
-    },
-
     '/login': {
       csurf: {
         methodsToProtect: [

@@ -2,6 +2,16 @@
 const cart = useCartStore()
 
 const {
+  $csrfFetch,
+} = useNuxtApp()
+
+const {
+  showConfirm,
+  showSuccess,
+  showError,
+} = useAppModal()
+
+const {
   loggedIn,
 } = useUserSession()
 
@@ -13,15 +23,6 @@ const orderType =
 const submitting =
   ref(false)
 
-const errorMessage =
-  ref('')
-
-const createdOrder =
-  ref<{
-    id: number
-    orderNo: string
-    totalAmount: number
-  } | null>(null)
 
 const formattedSubtotal =
   computed(() =>
@@ -48,8 +49,6 @@ const {
 } = useCheckoutTrace()
 
 async function placeOrder() {
-  errorMessage.value = ''
-  createdOrder.value = null
 
   if (
     cart.items.length === 0
@@ -70,6 +69,28 @@ async function placeOrder() {
     return
   }
 
+  const orderTypeLabel =
+  orderType.value === 'DINE_IN'
+    ? 'Dine in'
+    : 'Takeout'
+
+  const confirmed =
+    await showConfirm({
+      title: 'Place Your Order?',
+      message:
+        `${cart.totalItems} item${cart.totalItems === 1 ? '' : 's'} · ${orderTypeLabel}\n`
+        + `Total: ${formatPrice(cart.subtotal)}\n\n`
+        + 'Please confirm that your order details are correct.',
+      primaryLabel: 'Place Order',
+      secondaryLabel: 'Review Order',
+      dismissible: true,
+      closeOnBackdrop: false,
+    })
+  
+  if (!confirmed) {
+    return
+  }
+
   const checkoutTraceId =
   createTraceId()
 
@@ -77,7 +98,7 @@ async function placeOrder() {
 
   try {
     const response =
-      await $fetch<{
+      await $csrfFetch<{
         message: string
         order: {
           id: number
@@ -121,35 +142,82 @@ async function placeOrder() {
       checkoutTraceId,
     )
 
-    createdOrder.value = {
-      id:
-        response.order.id,
-
-      orderNo:
-        response.order.orderNo,
-
-      totalAmount:
-        response.order.totalAmount,
-    }
-
     cart.clearCart()
   }
   catch (error) {
-    const requestError =
-      error as {
-        data?: {
-          statusMessage?: string
-          message?: string
-        }
+  const requestError =
+    error as {
+      statusCode?: number
+
+      data?: {
+        statusCode?: number
+        statusMessage?: string
+        message?: string
       }
 
-    errorMessage.value =
-      requestError.data
-        ?.statusMessage
-      ?? requestError.data
-        ?.message
-      ?? 'Unable to place your order.'
+      response?: {
+        status?: number
+      }
+    }
+
+  const statusCode =
+    requestError.statusCode
+    ?? requestError.data
+      ?.statusCode
+    ?? requestError.response
+      ?.status
+
+  const message =
+    requestError.data
+      ?.statusMessage
+    ?? requestError.data
+      ?.message
+
+  if (statusCode === 409) {
+    showError({
+      title: 'Order Could Not Be Placed',
+      message:
+        message
+        ?? 'One or more items are no longer available in the requested quantity. Review your cart and try again.',
+      primaryLabel: 'Review Cart',
+    })
+
+    return
   }
+
+  if (statusCode === 401) {
+    showError({
+      title: 'Sign In Required',
+      message:
+        'Your session is no longer valid. Please sign in again before placing your order.',
+      primaryLabel: 'OK',
+    })
+
+    return
+  }
+
+  if (
+    statusCode
+    && statusCode >= 500
+  ) {
+    showError({
+      title: 'BrewHub Server Error',
+      message:
+        'BrewHub could not complete your order. Your cart has been kept so you can try again.',
+      primaryLabel: 'Try Again',
+    })
+
+    return
+  }
+
+  showError({
+    title: 'Unable to Place Order',
+    message:
+      message
+      ?? 'BrewHub could not place your order. Your cart has been kept so you can review it and try again.',
+    primaryLabel: 'Review Cart',
+  })
+}
   finally {
     submitting.value = false
   }
@@ -227,87 +295,9 @@ async function placeOrder() {
       </NuxtLink>
     </div>
 
-    <!-- SUCCESS -->
-    <section
-      v-if="createdOrder"
-      class="
-        mt-8
-        rounded-3xl
-        border
-        border-green-200
-        bg-green-50
-        p-4 sm:p-6
-      "
-    >
-      <p
-        class="
-          text-sm
-          font-semibold
-          text-green-800
-        "
-      >
-        Order created successfully
-      </p>
-
-      <h2
-        class="
-          mt-2
-          text-2xl
-          font-semibold
-          text-brew-900
-        "
-      >
-        {{ createdOrder.orderNo }}
-      </h2>
-
-      <p
-        class="
-          mt-2
-          text-sm
-          text-brew-600
-        "
-      >
-        Your order has been saved as
-        a draft. Inventory and payment
-        processing will be connected
-        in the next stage.
-      </p>
-
-      <p
-        class="
-          mt-4
-          font-semibold
-          text-brew-800
-        "
-      >
-        Total:
-        {{
-          formatPrice(
-            createdOrder.totalAmount,
-          )
-        }}
-      </p>
-
-      <NuxtLink
-        to="/catalog"
-        class="
-          mt-5
-          inline-flex
-          rounded-2xl
-          bg-brew-900
-          px-5 py-3
-          text-sm
-          font-semibold
-          text-white
-        "
-      >
-        Back to menu
-      </NuxtLink>
-    </section>
-
     <!-- EMPTY CART -->
     <section
-      v-else-if="
+      v-if="
         cart.items.length === 0
       "
       class="
@@ -771,7 +761,6 @@ async function placeOrder() {
         </p>
 
         <div
-          v-if="errorMessage"
           class="
             mt-5
             rounded-2xl
@@ -781,7 +770,6 @@ async function placeOrder() {
             text-red-700
           "
         >
-          {{ errorMessage }}
         </div>
 
         <button

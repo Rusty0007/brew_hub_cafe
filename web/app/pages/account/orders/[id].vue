@@ -6,6 +6,10 @@ definePageMeta({
   ],
 })
 
+const {
+  $csrfFetch,
+} = useNuxtApp()
+
 interface OrderItem {
   id: number
   orderId: number
@@ -53,6 +57,13 @@ interface OrderResponse {
 
 const route = useRoute()
 
+const {
+  showConfirm,
+  showSuccess,
+  showError,
+  showWarning,
+} = useAppModal()
+
 const orderId = computed(() =>
   Number(route.params.id),
 )
@@ -97,9 +108,6 @@ const cancellingOrder =
 const cancellationReason =
   ref('')
 
-const checkoutError =
-  ref('')
-
 const isDevelopment =
   import.meta.dev
 
@@ -112,35 +120,47 @@ async function preparePayment() {
     return
   }
 
-  checkoutError.value = ''
   preparingPayment.value = true
 
   try {
-    const checkoutTraceId =
-      getOrCreateTraceId(
-        order.value.id,
-      )
-
-    await $fetch(
-      `/api/customer/orders/${order.value.id}/prepare-payment`,
-      {
-        method: 'POST',
-      
-        headers: {
-          'X-Trace-Id':
-            checkoutTraceId,
-        },
-      },
+  const checkoutTraceId =
+    getOrCreateTraceId(
+      order.value.id,
     )
 
-    await refresh()
+  await $csrfFetch(
+    `/api/customer/orders/${order.value.id}/prepare-payment`,
+    {
+      method: 'POST',
+
+      headers: {
+        'X-Trace-Id':
+          checkoutTraceId,
+      },
+    },
+  )
+
+  await refresh()
+
+  showSuccess({
+    title: 'Order Ready for Payment',
+    message:
+      `Order ${order.value?.orderNo ?? ''} is ready for payment.`,
+    primaryLabel: 'Continue',
+  })
   }
   catch (error: unknown) {
-    checkoutError.value =
+    const message =
       getApiErrorMessage(
         error,
         'Unable to prepare order for payment.',
       )
+
+    showError({
+      title: 'Payment Preparation Failed',
+      message,
+      primaryLabel: 'OK',
+    })
   }
   finally {
     preparingPayment.value = false
@@ -152,7 +172,6 @@ async function simulatePayment() {
     return
   }
 
-  checkoutError.value = ''
   simulatingPayment.value = true
 
   try {
@@ -161,7 +180,7 @@ async function simulatePayment() {
           order.value.id,
         )
         
-      await $fetch(
+      await $csrfFetch(
         `/api/customer/orders/${order.value.id}/simulate-payment`,
         {
           method: 'POST',
@@ -176,15 +195,28 @@ async function simulatePayment() {
         },
       )
 
+    showSuccess({
+      title: 'Payment Completed',
+      message:
+        `Test payment for order ${order.value?.orderNo ?? ''} completed successfully.`,
+      primaryLabel: 'Done',
+      })
+
     await refresh()
   }
   catch (error: unknown) {
-    checkoutError.value =
-      getApiErrorMessage(
-        error,
-        'Unable to complete test payment.',
-      )
-  }
+  const message =
+    getApiErrorMessage(
+      error,
+      'Unable to complete test payment.',
+    )
+
+  showError({
+    title: 'Payment Failed',
+    message,
+    primaryLabel: 'OK',
+  })
+}
   finally {
     simulatingPayment.value = false
   }
@@ -195,22 +227,42 @@ async function submitCancellation() {
     return
   }
 
-  checkoutError.value = ''
 
   const reason =
     cancellationReason.value.trim()
 
   if (reason.length < 3) {
-    checkoutError.value =
-      'Please enter a cancellation reason.'
+  showWarning({
+    title: 'Cancellation Reason Required',
+    message:
+      'Please enter a cancellation reason before cancelling this order.',
+    primaryLabel: 'OK',
+  })
 
+  return
+}
+
+  const confirmed =
+  await showConfirm({
+    title: 'Cancel This Order?',
+    message:
+      `Order ${order.value.orderNo} will be cancelled.\n`
+      + `Reason: ${reason}\n\n`
+      + 'This action cannot be undone.',
+    primaryLabel: 'Cancel Order',
+    secondaryLabel: 'Keep Order',
+    dismissible: true,
+    closeOnBackdrop: false,
+  })
+
+  if (!confirmed) {
     return
   }
 
   cancellingOrder.value = true
 
   try {
-    await $fetch(
+    await $csrfFetch(
       `/api/customer/orders/${order.value.id}/cancel`,
       {
         method: 'POST',
@@ -225,14 +277,28 @@ async function submitCancellation() {
     showCancelForm.value = false
 
     await refresh()
+
+    showSuccess({
+      title: 'Order Cancelled',
+      message:
+        `Order ${order.value?.orderNo ?? ''} was cancelled successfully.`,
+      primaryLabel: 'Done',
+})
   }
   catch (error: unknown) {
-    checkoutError.value =
-      getApiErrorMessage(
-        error,
-        'Unable to cancel order.',
-      )
-  }
+  const message =
+    getApiErrorMessage(
+      error,
+      'Unable to cancel order.',
+    )
+
+  showError({
+    title: 'Cancellation Failed',
+    message:
+      message,
+    primaryLabel: 'OK',
+  })
+}
   finally {
     cancellingOrder.value = false
   }
@@ -795,7 +861,6 @@ function getApiErrorMessage(
       >
         <!-- Checkout error -->
         <div
-          v-if="checkoutError"
           class="
             mb-5
             rounded-2xl
@@ -806,7 +871,6 @@ function getApiErrorMessage(
             text-red-700
           "
         >
-          {{ checkoutError }}
         </div>
 
         <!-- DRAFT -->
