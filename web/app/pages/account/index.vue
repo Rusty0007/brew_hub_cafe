@@ -26,7 +26,7 @@ const {
   data,
   pending,
   error,
-} = await useFetch<{
+} = await useLazyFetch<{
   customer: Customer
 }>(
   '/api/customer/me',
@@ -63,17 +63,102 @@ const fullName = computed(() => {
 
     <div
       v-if="pending"
-      class="mt-10 text-brew-500"
+      class="mt-10"
+      aria-hidden="true"
     >
-      Loading your account...
+      <div>
+        <AppSkeleton class="h-3 w-32" />
+        <AppSkeleton class="mt-4 h-10 w-72 max-w-full" />
+        <AppSkeleton class="mt-4 h-5 w-80 max-w-full" />
+      </div>
+
+      <div
+        class="
+          mt-10
+          grid
+          gap-6
+          lg:grid-cols-[1.4fr_1fr]
+        "
+      >
+        <article
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4
+            shadow-sm
+            sm:p-8
+          "
+        >
+          <div
+            class="
+              flex
+              items-center
+              justify-between
+              gap-5
+            "
+          >
+            <div class="flex-1">
+              <AppSkeleton class="h-4 w-20" />
+              <AppSkeleton class="mt-3 h-8 w-48" />
+            </div>
+
+            <AppSkeleton
+              class="
+                size-14
+                rounded-full
+              "
+            />
+          </div>
+
+          <div
+            class="
+              mt-8
+              grid
+              gap-6
+              sm:grid-cols-2
+            "
+          >
+            <div
+              v-for="index in 4"
+              :key="index"
+            >
+              <AppSkeleton class="h-3 w-24" />
+              <AppSkeleton class="mt-3 h-5 w-32" />
+            </div>
+          </div>
+        </article>
+
+        <aside
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-brew-50
+            p-4
+            sm:p-8
+          "
+        >
+          <AppSkeleton class="h-3 w-28" />
+          <AppSkeleton class="mt-4 h-8 w-56" />
+
+          <div class="mt-7 grid gap-3">
+            <AppSkeleton class="h-12 w-full rounded-xl" />
+            <AppSkeleton class="h-28 w-full rounded-2xl" />
+            <AppSkeleton class="h-12 w-full rounded-xl" />
+          </div>
+        </aside>
+      </div>
     </div>
 
-    <div
+    <AppStatePanel
       v-else-if="error"
-      class="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700"
-    >
-      Unable to load your customer account.
-    </div>
+        class="mt-10"
+        variant="error"
+        title="Unable to load your account"
+        Xmessage="BrewHub could not retrieve your customer profile. Please try again."
+    />
 
     <template v-else-if="customer">
       <div class="mt-8">
@@ -247,12 +332,12 @@ const fullName = computed(() => {
               <p class="font-semibold text-brew-950">
                 My Orders
               </p>
-            
+
               <p class="mt-2 text-sm leading-6 text-brew-500">
                 Review your recent orders,
                 status, items, and totals.
               </p>
-            
+
               <p class="mt-4 text-sm font-semibold text-brew-700">
                 View order history →
               </p>

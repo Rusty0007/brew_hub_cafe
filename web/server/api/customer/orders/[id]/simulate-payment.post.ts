@@ -19,6 +19,8 @@ import {
 
 import {
   completeCustomerCheckout,
+  simulatePosPaymentTimeout,
+  simulateCustomerPaymentTimeout,
 } from '#server/domains/ordering/checkout-service'
 
 import {
@@ -26,7 +28,7 @@ import {
   logWarn,
 } from '#server/utils/logger'
 
-import { 
+import {
   recordTelemetryEvent
  } from '#server/domains/observability/service'
 
@@ -153,7 +155,7 @@ export default defineEventHandler(
         user.id,
         orderId,
       )
-    
+
     updateBrewHubRequestContext(
       event,
       {
@@ -161,6 +163,15 @@ export default defineEventHandler(
           observedOrder.branchId,
       },
     )
+
+    const query =
+      getQuery(
+        event,
+      )
+
+    const simulateTimeout =
+      query.simulateTimeout
+      === 'true'
 
     /*
      * The client must reuse this key
@@ -189,11 +200,18 @@ export default defineEventHandler(
      * payment simulator.
      */
     const requestData = {
-      userId: user.id,
+      userId:
+        user.id,
+
       orderId,
-      method: 'TEST',
+
+      method:
+        'TEST',
+
       provider:
         'BREWHUB_TEST',
+
+      simulateTimeout,
     }
 
     const idempotency =
@@ -276,30 +294,30 @@ export default defineEventHandler(
         getBrewHubRequestContext(
           event,
         )
-      
+
         logInfo(
           'payment.duplicate_prevented',
           {
             requestId:
               replayContext.requestId,
-          
+
             traceId:
               replayContext.traceId,
-          
+
             userId:
               user.id,
-          
+
             branchId:
               observedOrder.branchId,
-          
+
             orderId,
-          
+
             provider:
               'BREWHUB_TEST',
-          
+
             duplicatePrevented:
               true,
-          
+
             detection:
               'idempotency_replay',
           },
@@ -317,42 +335,103 @@ export default defineEventHandler(
      * PROCESS means this request owns
      * the right to execute checkout.
      */
+
+    if (simulateTimeout) {
+      const requestContext =
+        getBrewHubRequestContext(
+          event,
+        )
+
+      const result =
+        await simulateCustomerPaymentTimeout(
+          user.id,
+          orderId,
+          requestContext.traceId,
+        )
+
+      const response = {
+        message:
+          'Payment is being verified',
+
+        result,
+      }
+
+      /*
+       * The timeout simulation itself
+       * completed successfully.
+       *
+       * The payment outcome is UNKNOWN,
+       * so persist the 202 response for
+       * safe idempotent replay.
+       */
+      await finishIdempotentOperation({
+        idempotencyKey:
+          idempotency.idempotencyKey,
+
+        operation:
+          IDEMPOTENCY_OPERATION,
+
+        requestHash:
+          idempotency.requestHash,
+
+        status:
+          'SUCCEEDED',
+
+        resultReference:
+          `ORDER-${orderId}`,
+
+        responseCode:
+          202,
+
+        responseBody:
+          response,
+      })
+
+      setResponseStatus(
+        event,
+        202,
+      )
+
+      return response
+    }
+
+
     const paymentStartedAtMs =
       Date.now()
-      
+
     const requestContext =
       getBrewHubRequestContext(
         event,
       )
-    
+
     logInfo(
       'payment.authorize',
       {
         requestId:
           requestContext.requestId,
-      
+
         traceId:
           requestContext.traceId,
-      
+
         userId:
           user.id,
-      
+
         branchId:
           observedOrder.branchId,
-      
+
         orderId,
-      
+
         paymentMethod:
           'TEST',
-      
+
         provider:
           'BREWHUB_TEST',
-      
+
         result:
           'started',
       },
     )
-    
+
     try {
       const result =
         await completeCustomerCheckout(
@@ -361,77 +440,77 @@ export default defineEventHandler(
           {
             method:
               'TEST',
-          
+
             provider:
               'BREWHUB_TEST',
-          
+
             providerReference:
               `TEST-ORDER-${orderId}`,
           },
           requestContext.traceId,
         )
-      
+
       logInfo(
         'payment.succeeded',
         {
           requestId:
             requestContext.requestId,
-        
+
           traceId:
             requestContext.traceId,
-        
+
           userId:
             user.id,
-        
+
           branchId:
             observedOrder.branchId,
-        
+
           orderId,
-        
+
           paymentMethod:
             'TEST',
-        
+
           provider:
             'BREWHUB_TEST',
-        
+
           durationMs:
             Date.now()
             - paymentStartedAtMs,
-        
+
           result:
             'success',
         },
       )
-    
+
       logInfo(
         'order.completed',
         {
           requestId:
             requestContext.requestId,
-        
+
           traceId:
             requestContext.traceId,
-        
+
           userId:
             user.id,
-        
+
           branchId:
             observedOrder.branchId,
-        
+
           orderId,
-        
+
           result:
             'success',
         },
       )
-    
+
       const response = {
         message:
           'Test payment completed successfully',
-      
+
         result,
       }
-    
+
       /*
        * Save the successful response.
        * Future retries using the same
@@ -440,22 +519,22 @@ export default defineEventHandler(
       await finishIdempotentOperation({
         idempotencyKey:
           idempotency.idempotencyKey,
-      
+
         operation:
           IDEMPOTENCY_OPERATION,
-      
+
         requestHash:
           idempotency.requestHash,
-      
+
         status:
           'SUCCEEDED',
-      
+
         resultReference:
           `ORDER-${orderId}`,
-      
+
         responseCode:
           200,
-      
+
         responseBody:
           response,
       })
@@ -470,52 +549,52 @@ export default defineEventHandler(
           {
             requestId:
               requestContext.requestId,
-          
+
             traceId:
               requestContext.traceId,
-          
+
             userId:
               user.id,
-          
+
             branchId:
               observedOrder.branchId,
-          
+
             orderId,
-          
+
             source:
               'CUSTOMER',
-          
+
             result:
               'success',
           },
         )
-      
+
         await recordTelemetryEvent({
           eventName:
             'checkout.success',
-        
+
           requestId:
             requestContext.requestId,
-        
+
           traceId:
             requestContext.traceId,
-        
+
           userId:
             user.id,
-        
+
           branchId:
             observedOrder.branchId,
-        
+
           orderId,
-        
+
           source:
             'CUSTOMER',
-        
+
           result:
             'success',
         })
       }
-    
+
       return response
     }
     catch (error: unknown) {
@@ -534,33 +613,33 @@ export default defineEventHandler(
         {
           requestId:
             requestContext.requestId,
-        
+
           traceId:
             requestContext.traceId,
-        
+
           userId:
             user.id,
-        
+
           branchId:
             observedOrder.branchId,
-        
+
           orderId,
-        
+
           paymentMethod:
             'TEST',
-        
+
           provider:
             'BREWHUB_TEST',
-        
+
           statusCode,
-        
+
           durationMs:
             Date.now()
             - paymentStartedAtMs,
-        
+
           result:
             'failed',
-        
+
           message,
         },
       )
@@ -568,33 +647,33 @@ export default defineEventHandler(
       await recordTelemetryEvent({
         eventName:
           'checkout.failure',
-            
+
         requestId:
           requestContext.requestId,
-            
+
         traceId:
           requestContext.traceId,
-            
+
         userId:
           user.id,
-            
+
         branchId:
           observedOrder.branchId,
-            
+
         orderId,
-            
+
         source:
           'CUSTOMER',
-            
+
         result:
           'failed',
-            
+
         metadata: {
           stage:
             'payment.authorize',
-        
+
           statusCode,
-        
+
           message,
         },
       })

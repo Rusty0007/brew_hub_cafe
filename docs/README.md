@@ -29,6 +29,8 @@ The first deployment serves one branch, but the architecture should support futu
 
 See the `docs/` folder:
 
+- `SYSTEM_CONTEXT_DIAGRAM.md` - diagram-ready actors, boundaries, relationships, data flows, assumptions, and current/future context
+- `DOMAIN_BOUNDARIES.md` - source-aligned domain ownership, exposed operations, forbidden access, and cross-domain dependencies
 - `REQUIREMENTS.md` — confirmed requirements and system parameters
 - `ARCHITECTURE.md` — domains, responsibilities, boundaries, and architectural rules
 - `DATABASE_NOTES.md` — required tables, relationships, JOIN guidance, concurrency, and idempotency

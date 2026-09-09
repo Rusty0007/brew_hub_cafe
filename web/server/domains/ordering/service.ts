@@ -1982,40 +1982,62 @@ export async function getCustomerOrders(
 export async function getCustomerOrder(
   userId: number,
   orderId: number,
-) {
-  const customer =
-    await getActiveCustomerByUserId(
-      userId,
-    )
-
-  const order =
-    await findOrderById(
-      orderId,
-    )
-
-  /*
-   * Don't expose whether another
-   * customer's order exists.
-   */
-  if (
-    !order
-    || order.customerId
-      !== customer.id
   ) {
-    throw createError({
-      statusCode: 404,
-      statusMessage:
-        'Order not found',
-    })
-  }
+    const customer =
+      await getActiveCustomerByUserId(
+        userId,
+      )
 
-  const items =
-    await findOrderItemsByOrderId(
-      order.id,
+    const order =
+      await findOrderById(
+        orderId,
+      )
+
+    /*
+     * Don't expose whether another
+     * customer's order exists.
+     */
+    if (
+      !order
+      || order.customerId
+        !== customer.id
+    ) {
+      throw createError({
+        statusCode: 404,
+        statusMessage:
+          'Order not found',
+      })
+    }
+
+    const [
+    items,
+    payments,
+  ] =
+    await Promise.all([
+      findOrderItemsByOrderId(
+        order.id,
+      ),
+
+      getPaymentsByOrder(
+        order.id,
+      ),
+    ])
+
+  const paymentState =
+    (
+      order.status === 'PENDING_PAYMENT'
+      && payments.some(
+        payment =>
+          payment.status === 'UNKNOWN',
+      )
     )
+      ? 'VERIFYING' as const
+      : null
 
   return {
     ...normalizeOrder(order),
+
+    paymentState,
 
     items:
       items.map(item => ({

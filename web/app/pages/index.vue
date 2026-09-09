@@ -69,17 +69,10 @@ const accountLabel = computed(() => {
         the coffee image on the right.
       -->
       <div
-        class="absolute inset-0"
-        style="
-          background:
-            linear-gradient(
-              90deg,
-              rgba(252, 250, 247, 0.96) 0%,
-              rgba(252, 250, 247, 0.90) 25%,
-              rgba(252, 250, 247, 0.55) 48%,
-              rgba(252, 250, 247, 0.08) 72%,
-              rgba(252, 250, 247, 0) 100%
-            );
+        class="
+          absolute
+          inset-0
+          hero-overlay
         "
       />
 
@@ -169,7 +162,7 @@ const accountLabel = computed(() => {
           >
             Create Account
           </NuxtLink>
-        
+
           <!-- STAFF LOGIN -->
           <NuxtLink
             to="/login"
@@ -179,7 +172,7 @@ const accountLabel = computed(() => {
             Sign In
           </NuxtLink>
         </div>
-        
+
         <!-- AUTHENTICATED STAFF -->
         <NuxtLink
           v-else

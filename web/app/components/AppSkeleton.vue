@@ -1,0 +1,10 @@
+<template>
+  <div
+    class="
+      animate-pulse
+      rounded-xl
+      bg-stone-200
+    "
+    aria-hidden="true"
+  />
+</template>

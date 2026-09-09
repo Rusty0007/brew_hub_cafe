@@ -86,7 +86,7 @@ async function placeOrder() {
       dismissible: true,
       closeOnBackdrop: false,
     })
-  
+
   if (!confirmed) {
     return
   }
@@ -296,100 +296,30 @@ async function placeOrder() {
     </div>
 
     <!-- EMPTY CART -->
-    <section
-      v-if="
-        cart.items.length === 0
-      "
-      class="
-        mt-8
-        rounded-3xl
-        border
-        border-brew-100
-        bg-white
-        px-6 py-16
-        text-center
-        shadow-sm
-      "
-    >
-      <div
-        class="
-          mx-auto
-          flex size-16
-          items-center
-          justify-center
-          rounded-full
-          bg-brew-100
-          text-brew-800
-        "
+      <AppStatePanel
+        v-if="cart.items.length === 0"
+        class="mt-8"
+        title="Your cart is empty"
+        message="Choose something from the BrewHub menu to get started."
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          class="size-7"
-          aria-hidden="true"
+        <NuxtLink
+          to="/catalog"
+          class="
+            inline-flex
+            rounded-2xl
+            bg-brew-900
+            px-5
+            py-3
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-brew-800
+          "
         >
-          <path
-            d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20.5 8H6"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-
-          <circle
-            cx="10"
-            cy="19"
-            r="1"
-            fill="currentColor"
-          />
-
-          <circle
-            cx="18"
-            cy="19"
-            r="1"
-            fill="currentColor"
-          />
-        </svg>
-      </div>
-
-      <h2
-        class="
-          mt-5
-          text-xl
-          font-semibold
-          text-brew-900
-        "
-      >
-        Your cart is empty
-      </h2>
-
-      <p
-        class="
-          mt-2
-          text-sm
-          text-brew-500
-        "
-      >
-        Choose something from the
-        BrewHub menu to get started.
-      </p>
-
-      <NuxtLink
-        to="/catalog"
-        class="
-          mt-6
-          inline-flex
-          rounded-2xl
-          bg-brew-900
-          px-5 py-3
-          text-sm
-          font-semibold
-          text-white
-        "
-      >
-        Browse menu
-      </NuxtLink>
-    </section>
+          Browse menu
+        </NuxtLink>
+      </AppStatePanel>
 
     <!-- CART CONTENT -->
     <div
@@ -760,23 +690,15 @@ async function placeOrder() {
           your order is submitted.
         </p>
 
-        <div
-          class="
-            mt-5
-            rounded-2xl
-            bg-red-50
-            px-4 py-3
-            text-sm
-            text-red-700
-          "
-        >
-        </div>
-
         <button
           type="button"
           class="
             mt-6
+            flex
             w-full
+            items-center
+            justify-center
+            gap-3
             rounded-2xl
             bg-brew-900
             px-5 py-3.5
@@ -788,15 +710,31 @@ async function placeOrder() {
             disabled:opacity-60
           "
           :disabled="submitting"
+          :aria-busy="submitting"
           @click="placeOrder"
         >
-          {{
-            submitting
-              ? 'Placing order...'
-              : loggedIn
-                ? 'Place order'
-                : 'Sign in to order'
-          }}
+          <span
+            v-if="submitting"
+            class="
+              size-5
+              animate-spin
+              rounded-full
+              border-2
+              border-white/40
+              border-t-white
+            "
+            aria-hidden="true"
+          />
+
+          <span>
+            {{
+              submitting
+                ? 'Placing order...'
+                : loggedIn
+                  ? 'Place order'
+                  : 'Sign in to order'
+            }}
+          </span>
         </button>
       </aside>
     </div>

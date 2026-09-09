@@ -35,6 +35,10 @@ interface CustomerOrder {
   orderType: string
   status: string
 
+  paymentState:
+  | 'VERIFYING'
+  | null
+
   subtotal: number
   discountAmount: number
   taxAmount: number
@@ -84,7 +88,7 @@ const {
   pending,
   error,
   refresh,
-} = await useFetch<OrderResponse>(
+} = await useLazyFetch<OrderResponse>(
   () =>
     `/api/customer/orders/${orderId.value}`,
 )
@@ -179,16 +183,16 @@ async function simulatePayment() {
         getOrCreateTraceId(
           order.value.id,
         )
-        
+
       await $csrfFetch(
         `/api/customer/orders/${order.value.id}/simulate-payment`,
         {
           method: 'POST',
-        
+
           headers: {
             'X-Trace-Id':
               checkoutTraceId,
-          
+
             'Idempotency-Key':
               `BREWHUB-TEST-PAYMENT-ORDER-${order.value.id}`,
           },
@@ -217,6 +221,74 @@ async function simulatePayment() {
     primaryLabel: 'OK',
   })
 }
+  finally {
+    simulatingPayment.value = false
+  }
+}
+
+async function simulatePaymentTimeout() {
+  if (!order.value) {
+    return
+  }
+
+  simulatingPayment.value = true
+
+  try {
+    const checkoutTraceId =
+      getOrCreateTraceId(
+        order.value.id,
+      )
+
+    await $csrfFetch(
+      `/api/customer/orders/${order.value.id}/simulate-payment?simulateTimeout=true`,
+      {
+        method: 'POST',
+
+        headers: {
+          'X-Trace-Id':
+            checkoutTraceId,
+
+          /*
+           * Timeout simulation is a
+           * different logical request
+           * from successful payment.
+           */
+          'Idempotency-Key':
+            `BREWHUB-TEST-PAYMENT-TIMEOUT-ORDER-${order.value.id}`,
+        },
+      },
+    )
+
+    await refresh()
+
+    showWarning({
+      title:
+        'Payment Being Verified',
+
+      message:
+        'The payment provider did not return a final result. BrewHub will keep this order pending while the payment is verified.',
+
+      primaryLabel:
+        'OK',
+    })
+  }
+  catch (error: unknown) {
+    const message =
+      getApiErrorMessage(
+        error,
+        'Unable to simulate payment timeout.',
+      )
+
+    showError({
+      title:
+        'Timeout Simulation Failed',
+
+      message,
+
+      primaryLabel:
+        'OK',
+    })
+  }
   finally {
     simulatingPayment.value = false
   }
@@ -440,45 +512,188 @@ function getApiErrorMessage(
     </NuxtLink>
 
     <!-- LOADING -->
-    <section
-      v-if="pending"
-      class="
-        mt-8
-        rounded-3xl
-        border border-brew-100
-        bg-white
-        p-4 sm:p-8
-        text-brew-500
-        shadow-sm
-      "
-    >
-      Loading order...
-    </section>
+    <template v-if="pending">
+        <!-- ORDER HEADER SKELETON -->
+        <section
+          class="
+            mt-8
+            rounded-3xl
+            border border-brew-100
+            bg-white
+            p-4
+            shadow-sm
+            sm:p-8
+          "
+          aria-hidden="true"
+        >
+          <div
+            class="
+              flex flex-col
+              gap-5
+              sm:flex-row
+              sm:items-start
+              sm:justify-between
+            "
+          >
+            <div class="flex-1">
+              <AppSkeleton class="h-3 w-28" />
+
+              <AppSkeleton
+                class="
+                  mt-3
+                  h-8
+                  w-44
+                "
+              />
+
+              <AppSkeleton
+                class="
+                  mt-4
+                  h-4
+                  w-48
+                "
+              />
+            </div>
+
+            <AppSkeleton
+              class="
+                h-10
+                w-28
+                rounded-full
+              "
+            />
+          </div>
+
+          <div
+            class="
+              mt-7
+              grid gap-4
+              border-t border-brew-100
+              pt-6
+              sm:grid-cols-2
+            "
+          >
+            <div>
+              <AppSkeleton class="h-3 w-20" />
+              <AppSkeleton class="mt-2 h-5 w-24" />
+            </div>
+
+            <div>
+              <AppSkeleton class="h-3 w-16" />
+              <AppSkeleton class="mt-2 h-5 w-32" />
+            </div>
+          </div>
+        </section>
+
+        <!-- ITEMS SKELETON -->
+        <section
+          class="
+            mt-6
+            overflow-hidden
+            rounded-3xl
+            border border-brew-100
+            bg-white
+            shadow-sm
+          "
+          aria-hidden="true"
+        >
+          <div
+            class="
+              border-b border-brew-100
+              px-6 py-5
+              sm:px-8
+            "
+          >
+            <AppSkeleton class="h-6 w-28" />
+          </div>
+
+          <article
+            v-for="index in 3"
+            :key="index"
+            class="
+              flex flex-col
+              gap-4
+              border-b border-brew-100
+              px-6 py-5
+              last:border-b-0
+              sm:flex-row
+              sm:items-center
+              sm:justify-between
+              sm:px-8
+            "
+          >
+            <div class="flex-1">
+              <AppSkeleton class="h-5 w-40" />
+              <AppSkeleton class="mt-2 h-3 w-24" />
+              <AppSkeleton class="mt-3 h-4 w-32" />
+            </div>
+
+            <AppSkeleton class="h-6 w-24" />
+          </article>
+        </section>
+
+        <!-- TOTALS SKELETON -->
+        <section
+          class="
+            mt-6
+            ml-auto
+            max-w-md
+            rounded-3xl
+            border border-brew-100
+            bg-white
+            p-4
+            shadow-sm
+            sm:p-6
+          "
+          aria-hidden="true"
+        >
+          <div class="space-y-4">
+            <div
+              v-for="index in 3"
+              :key="index"
+              class="
+                flex
+                items-center
+                justify-between
+                gap-4
+              "
+            >
+              <AppSkeleton class="h-4 w-20" />
+              <AppSkeleton class="h-4 w-24" />
+            </div>
+
+            <div
+              class="
+                flex
+                items-center
+                justify-between
+                gap-4
+                border-t border-brew-100
+                pt-4
+              "
+            >
+              <AppSkeleton class="h-5 w-16" />
+              <AppSkeleton class="h-8 w-28" />
+            </div>
+          </div>
+        </section>
+      </template>
 
     <!-- ERROR -->
-    <section
+    <AppStatePanel
       v-else-if="error"
-      class="
-        mt-8
-        rounded-3xl
-        border border-red-200
-        bg-red-50
-        p-4 sm:p-6
+      class="mt-8"
+      variant="error"
+      title="Unable to load this order"
+      message="
+        BrewHub could not retrieve this
+        order. Please try again.
       "
     >
-      <p
-        class="
-          font-semibold
-          text-red-700
-        "
-      >
-        Unable to load this order.
-      </p>
-
       <button
         type="button"
         class="
-          mt-4
+          mt-5
           rounded-xl
           border border-red-200
           px-4 py-2
@@ -491,7 +706,7 @@ function getApiErrorMessage(
       >
         Try again
       </button>
-    </section>
+    </AppStatePanel>
 
     <template v-else-if="order">
       <!-- ORDER HEADER -->
@@ -859,19 +1074,6 @@ function getApiErrorMessage(
           sm:p-8
         "
       >
-        <!-- Checkout error -->
-        <div
-          class="
-            mb-5
-            rounded-2xl
-            border border-red-200
-            bg-red-50
-            px-4 py-3
-            text-sm
-            text-red-700
-          "
-        >
-        </div>
 
         <!-- DRAFT -->
         <template
@@ -901,8 +1103,13 @@ function getApiErrorMessage(
           <button
             type="button"
             :disabled="preparingPayment"
+            :aria-busy="preparingPayment"
             class="
               mt-5
+              inline-flex
+              items-center
+              justify-center
+              gap-2
               rounded-xl
               px-5 py-3
               text-sm font-semibold
@@ -918,9 +1125,22 @@ function getApiErrorMessage(
             "
             @click="preparePayment"
           >
+            <span
+              v-if="preparingPayment"
+              class="
+                size-4
+                animate-spin
+                rounded-full
+                border-2
+                border-white/40
+                border-t-white
+              "
+              aria-hidden="true"
+            />
+
             {{
               preparingPayment
-                ? 'Preparing...'
+                ? 'Preparing payment...'
                 : 'Proceed to Payment'
             }}
           </button>
@@ -933,30 +1153,75 @@ function getApiErrorMessage(
             === 'PENDING_PAYMENT'
           "
         >
-          <h2
-            class="
-              text-lg font-semibold
-              text-brew-950
+          <div
+            v-if="
+              order.paymentState
+              === 'VERIFYING'
             "
+            class="
+              rounded-2xl
+              border border-amber-200
+              bg-amber-50
+              p-5
+            "
+            role="status"
+            aria-live="polite"
           >
-            Awaiting payment
-          </h2>
+            <h2
+              class="
+                font-semibold
+                text-amber-900
+              "
+            >
+              Payment is being verified
+            </h2>
 
-          <p
-            class="
-              mt-2
-              text-sm leading-6
-              text-brew-500
-            "
-          >
-            Your items are currently
-            reserved while this order
-            waits for payment.
-          </p>
+            <p
+              class="
+                mt-2
+                text-sm leading-6
+                text-amber-800
+              "
+            >
+              The payment provider did not
+              return a final result. Your
+              order is still pending while
+              BrewHub verifies the payment.
+              Please do not submit another
+              payment.
+            </p>
+          </div>
+
+          <template v-else>
+            <h2
+              class="
+                text-lg font-semibold
+                text-brew-950
+              "
+            >
+              Awaiting payment
+            </h2>
+
+            <p
+              class="
+                mt-2
+                text-sm leading-6
+                text-brew-500
+              "
+            >
+              Your items are currently
+              reserved while this order
+              waits for payment.
+            </p>
+          </template>
 
           <!-- Development payment simulator -->
           <div
-            v-if="isDevelopment"
+            v-if="
+              isDevelopment
+              && order.paymentState
+                !== 'VERIFYING'
+            "
             class="
               mt-5
               rounded-2xl
@@ -990,11 +1255,14 @@ function getApiErrorMessage(
 
             <button
               type="button"
-              :disabled="
-                simulatingPayment
-              "
+              :disabled="simulatingPayment"
+              :aria-busy="simulatingPayment"
               class="
                 mt-4
+                inline-flex
+                items-center
+                justify-center
+                gap-2
                 rounded-xl
                 px-5 py-3
                 text-sm font-semibold
@@ -1010,16 +1278,56 @@ function getApiErrorMessage(
               "
               @click="simulatePayment"
             >
+              <span
+                v-if="simulatingPayment"
+                class="
+                  size-4
+                  animate-spin
+                  rounded-full
+                  border-2
+                  border-white/40
+                  border-t-white
+                "
+                aria-hidden="true"
+              />
+
               {{
                 simulatingPayment
-                  ? 'Processing...'
+                  ? 'Processing payment...'
                   : 'Complete Test Payment'
               }}
+            </button>
+            <button
+              type="button"
+              :disabled="simulatingPayment"
+              :aria-busy="simulatingPayment"
+              class="
+                mt-3
+                inline-flex
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                border border-amber-700
+                px-5 py-3
+                text-sm font-semibold
+                text-amber-800
+                transition
+                hover:bg-amber-100
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+              "
+              @click="simulatePaymentTimeout"
+            >
+              Simulate Payment Timeout
             </button>
           </div>
 
           <p
-            v-else
+            v-else-if="
+              order.paymentState
+              !== 'VERIFYING'
+              "
             class="
               mt-5
               rounded-2xl
@@ -1048,42 +1356,67 @@ function getApiErrorMessage(
               p-5
             "
           >
-            <h2
+            <div
               class="
-                font-semibold
-                text-green-800
+                flex
+                items-start
+                gap-3
               "
             >
-              Order completed
-            </h2>
+              <div
+                class="
+                  flex
+                  size-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-green-100
+                  text-green-700
+                "
+                aria-hidden="true"
+              >
+                ✓
+              </div>
 
-            <p
-              class="
-                mt-2
-                text-sm leading-6
-                text-green-700
-              "
-            >
-              Payment was successful
-              and this order has been
-              completed.
-            </p>
+              <div>
+                <h2
+                  class="
+                    font-semibold
+                    text-green-800
+                  "
+                >
+                  Payment confirmed
+                </h2>
 
-            <p
-              v-if="order.completedAt"
-              class="
-                mt-2
-                text-xs
-                text-green-700
-              "
-            >
-              Completed
-              {{
-                formatDate(
-                  order.completedAt,
-                )
-              }}
-            </p>
+                <p
+                  class="
+                    mt-2
+                    text-sm leading-6
+                    text-green-700
+                  "
+                >
+                  Your payment was successful and
+                  this BrewHub order is complete.
+                </p>
+
+                <p
+                  v-if="order.completedAt"
+                  class="
+                    mt-2
+                    text-xs
+                    text-green-700
+                  "
+                >
+                  Completed
+                  {{
+                    formatDate(
+                      order.completedAt,
+                    )
+                  }}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div
@@ -1108,7 +1441,7 @@ function getApiErrorMessage(
             >
               TESDA Idempotency Test
             </p>
-          
+
             <p
               class="
                 mt-2
@@ -1123,7 +1456,7 @@ function getApiErrorMessage(
               without creating another payment or
               deducting inventory again.
             </p>
-          
+
             <button
               type="button"
               :disabled="simulatingPayment"
@@ -1152,7 +1485,7 @@ function getApiErrorMessage(
               }}
             </button>
           </div>
-          
+
         </template>
 
         <!-- CANCEL ORDER -->

@@ -63,7 +63,7 @@ const {
   data: categoriesResponse,
   pending: categoriesPending,
   error: categoriesError,
-} = await useFetch<CategoryResponse>(
+} = await useLazyFetch<CategoryResponse>(
   '/api/catalog/categories',
 )
 
@@ -89,7 +89,7 @@ const {
   data: productsResponse,
   pending: productsPending,
   error: productsError,
-} = await useFetch<ProductResponse>(
+} = await useLazyFetch<ProductResponse>(
   '/api/catalog/products',
   {
     query: productQuery,
@@ -130,9 +130,57 @@ function selectCategory(
 // ---------------------------------------------------------
 
 function submitSearch() {
-  searchQuery.value = searchInput.value.trim()
+  const normalizedSearch =
+    searchInput.value.trim()
 
-  // New search starts from first page.
+  /*
+   * If the user searches an exact
+   * category name such as "Coffee",
+   * "Pastries", or "Cold Drinks",
+   * treat it as a category selection.
+   */
+  const matchingCategory =
+    categories.value.find(
+      category =>
+        category.name
+          .toLowerCase()
+        === normalizedSearch
+          .toLowerCase(),
+    )
+
+  if (matchingCategory) {
+    selectedCategoryId.value =
+      matchingCategory.id
+
+    searchQuery.value = ''
+    offset.value = 0
+
+    return
+  }
+
+  watch(
+  searchInput,
+  (value) => {
+    if (
+      value.trim() === ''
+      && searchQuery.value !== ''
+    ) {
+      searchQuery.value = ''
+      offset.value = 0
+    }
+  },
+)
+
+  /*
+   * A normal text search should search
+   * the entire catalog rather than only
+   * the previously selected category.
+   */
+  selectedCategoryId.value = null
+
+  searchQuery.value =
+    normalizedSearch
+
   offset.value = 0
 }
 
@@ -274,25 +322,29 @@ function nextPage() {
           </p>
 
           <div
-            v-if="categoriesPending"
-            class="text-sm text-brew-500"
-          >
-            Loading categories...
-          </div>
-
-          <div
-            v-else-if="categoriesError"
-            class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-          >
-            Unable to load categories.
-          </div>
-
-          <CatalogCategoryFilter
-            v-else
-            :categories="categories"
-            :selected-category-id="selectedCategoryId"
-            @select="selectCategory"
+  v-if="categoriesPending"
+  class="flex flex-wrap gap-3"
+>
+          <AppSkeleton
+            v-for="index in 5"
+            :key="index"
+            class="h-10 w-28 rounded-full"
           />
+        </div>
+
+        <AppStatePanel
+          v-else-if="categoriesError"
+          variant="error"
+          title="Unable to load categories"
+          message="Product categories could not be retrieved."
+        />
+
+        <CatalogCategoryFilter
+          v-else
+          :categories="categories"
+          :selected-category-id="selectedCategoryId"
+          @select="selectCategory"
+        />
         </div>
       </div>
 
@@ -340,101 +392,52 @@ function nextPage() {
 
       <!-- PRODUCTS -->
       <div class="mt-6">
-        <!-- Loading -->
-        <div
-          v-if="productsPending"
-          class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-        >
-          <div
-            v-for="index in 8"
-            :key="index"
-            class="animate-pulse overflow-hidden rounded-3xl border border-brew-200 bg-white"
-          >
-            <div
-              class="aspect-4/3 bg-brew-100"
-            />
-
-            <div class="p-5">
-              <div
-                class="h-3 w-1/3 rounded bg-brew-100"
-              />
-
-              <div
-                class="mt-4 h-5 w-2/3 rounded bg-brew-100"
-              />
-
-              <div
-                class="mt-3 h-4 w-full rounded bg-brew-100"
-              />
-
-              <div
-                class="mt-6 h-5 w-1/4 rounded bg-brew-100"
-              />
-            </div>
-          </div>
-        </div>
+  <!-- Loading -->
+    <AppCardSkeleton
+      v-if="productsPending"
+      :count="8"
+    />
 
         <!-- Error -->
-        <div
-          v-else-if="productsError"
-          class="rounded-3xl border border-red-200 bg-red-50 p-4 sm:p-10 text-center text-sm text-red-700"
-        >
-          Unable to load products.
-        </div>
+        <!-- Error -->
+      <AppStatePanel
+        v-else-if="productsError"
+        variant="error"
+        title="Unable to load products"
+        message="The BrewHub menu could not be loaded. Please try again."
+      />
 
         <!-- Empty -->
-        <div
+        <AppStatePanel
           v-else-if="totalProducts === 0"
-          class="rounded-3xl border border-dashed border-brew-300 bg-white px-6 py-20 text-center"
+          title="No products found"
+          :message="
+            searchQuery
+              ? `No products match &quot;${searchQuery}&quot;. Try another search or select a category.`
+              : 'There are currently no products available for this category.'
+          "
         >
-          <div
-            class="mx-auto flex size-16 items-center justify-center rounded-full bg-brew-100 text-brew-700"
-          >
-            <svg
-              viewBox="0 0 64 64"
-              fill="none"
-              class="size-8"
-              aria-hidden="true"
-            >
-              <path
-                d="M15 23h31v15c0 9-7 16-16 16S15 47 15 38V23Z"
-                stroke="currentColor"
-                stroke-width="3"
-              />
-
-              <path
-                d="M46 28h3a8 8 0 0 1 0 16h-5"
-                stroke="currentColor"
-                stroke-width="3"
-              />
-            </svg>
-          </div>
-
-          <h2
-            class="mt-6 text-xl font-semibold text-brew-900"
-          >
-            No products found
-          </h2>
-
-          <p
-            class="mx-auto mt-2 max-w-md leading-7 text-brew-500"
-          >
-            {{
-              searchQuery
-                ? `No products match "${searchQuery}". Try another search or select a category.`
-                : 'There are currently no products available for this category.'
-            }}
-          </p>
-
           <button
             v-if="searchQuery"
             type="button"
-            class="mt-6 rounded-xl border border-brew-200 bg-white px-5 py-3 text-sm font-semibold text-brew-700 transition hover:bg-brew-100"
+            class="
+              rounded-xl
+              border
+              border-brew-200
+              bg-white
+              px-5
+              py-3
+              text-sm
+              font-semibold
+              text-brew-700
+              transition
+              hover:bg-brew-100
+            "
             @click="clearSearch"
           >
             Clear search
           </button>
-        </div>
+        </AppStatePanel>
 
         <!-- PRODUCT GRID -->
         <div

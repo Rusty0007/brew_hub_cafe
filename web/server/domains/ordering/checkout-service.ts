@@ -217,6 +217,193 @@ export async function simulatePosPaymentTimeout(
   }
 }
 
+export async function simulateCustomerPaymentTimeout(
+  userId: number,
+  orderId: number,
+  traceId: string,
+) {
+  /*
+   * Confirm that the logged-in user
+   * is an active customer.
+   */
+  const customer =
+    await getActiveCustomerByUserId(
+      userId,
+    )
+
+  /*
+   * Load the order and verify
+   * customer ownership.
+   */
+  const order =
+    await findOrderById(
+      orderId,
+    )
+
+  if (
+    !order
+    || order.customerId !== customer.id
+  ) {
+    throw createError({
+      statusCode: 404,
+      statusMessage:
+        'Order not found',
+    })
+  }
+
+  /*
+   * Inventory must already have been
+   * reserved before payment is attempted.
+   */
+  if (
+    order.status !== 'PENDING_PAYMENT'
+  ) {
+    throw createError({
+      statusCode: 409,
+      statusMessage:
+        'Order is not ready for payment',
+    })
+  }
+
+  const totalAmount =
+    Number(
+      order.totalAmount ?? 0,
+    )
+
+  if (
+    !Number.isFinite(totalAmount)
+    || totalAmount <= 0
+  ) {
+    throw createError({
+      statusCode: 409,
+      statusMessage:
+        'Order total is invalid',
+    })
+  }
+
+  /*
+   * A timeout does NOT prove that
+   * payment failed.
+   *
+   * Record UNKNOWN so another charge
+   * is not attempted blindly.
+   */
+  const payment =
+    await recordPaymentResult({
+      orderId:
+        order.id,
+
+      method:
+        'TEST',
+
+      provider:
+        'BREWHUB_TEST',
+
+      /*
+       * Stable provider reference keeps
+       * repeated timeout simulation
+       * idempotent.
+       */
+      providerReference:
+        `TEST-TIMEOUT-ORDER-${order.id}`,
+
+      amount:
+        totalAmount,
+
+      status:
+        'UNKNOWN',
+
+      failureCode:
+        'PAYMENT_TIMEOUT',
+
+      failureMessage:
+        'Payment provider response timed out; final payment status is unknown.',
+    })
+
+  /*
+   * Structured payment-timeout log.
+   */
+  logWarn(
+    'payment.timeout',
+    {
+      traceId,
+
+      userId,
+
+      branchId:
+        order.branchId,
+
+      orderId:
+        order.id,
+
+      paymentStatus:
+        'UNKNOWN',
+
+      provider:
+        'BREWHUB_TEST',
+
+      message:
+        'Payment is being verified.',
+    },
+  )
+
+  await recordTelemetryEvent({
+    eventName:
+      'payment.timeout',
+
+    traceId,
+
+    userId,
+
+    branchId:
+      order.branchId,
+
+    orderId:
+      order.id,
+
+    source:
+      'CUSTOMER',
+
+    result:
+      'timeout',
+
+    metadata: {
+      paymentId:
+        payment.id,
+
+      paymentStatus:
+        'UNKNOWN',
+
+      provider:
+        'BREWHUB_TEST',
+
+      failureCode:
+        'PAYMENT_TIMEOUT',
+    },
+  })
+
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT call completeOrder().
+   * Do NOT consume the reservation.
+   * Do NOT deduct inventory.
+   *
+   * The order remains
+   * PENDING_PAYMENT while the
+   * payment result is verified.
+   */
+  return {
+    order,
+    payment,
+
+    traceId,
+
+    paymentState:
+      'VERIFYING' as const,
+  }
+}
+
 export async function completeCustomerCheckout(
   userId: number,
   orderId: number,
