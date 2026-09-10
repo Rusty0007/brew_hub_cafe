@@ -192,9 +192,10 @@ export default defineEventHandler(async (event) => {
    * the Login performance boundary.
    */
   await createAuthSession(
-    event,
-    user.id,
-  )
+  event,
+  user.id,
+  user,
+)
 
   const requestContext =
     getBrewHubRequestContext(

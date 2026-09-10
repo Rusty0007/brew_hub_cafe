@@ -42,12 +42,25 @@ async function loadCurrentUser(
   }
 }
 
+interface AuthSessionUser {
+  id: number
+  username: string
+  displayName: string
+  email: string | null
+  roles: string[]
+}
+
 export async function createAuthSession(
   event: H3Event,
   userId: number,
+  authenticatedUser?:
+    AuthSessionUser,
 ) {
   const user =
-    await loadCurrentUser(userId)
+    authenticatedUser
+    ?? await loadCurrentUser(
+      userId,
+    )
 
   if (!user) {
     throw createError({
