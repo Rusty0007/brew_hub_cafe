@@ -408,39 +408,51 @@ export async function getPerformanceDurationStats(
   const result =
     await db.execute(
       sql`
+        WITH recent_samples AS (
+          SELECT
+            (
+              metadata
+              ->> 'durationMs'
+            )::double precision
+              AS "durationMs"
+
+          FROM brewhub.telemetry_events
+
+          WHERE event_name =
+            'performance.sample'
+
+            AND metadata
+              ->> 'operation'
+              = ${operation}
+
+            AND metadata
+              ? 'durationMs'
+
+          ORDER BY
+            created_at DESC,
+            id DESC
+
+          LIMIT 10
+        )
+
         SELECT
           COUNT(*)::bigint
             AS "sampleCount",
 
           COALESCE(
-            AVG(
-              (
-                metadata
-                ->> 'durationMs'
-              )::double precision
-            ),
+            AVG("durationMs"),
             0
           )::double precision
             AS "averageMs",
 
           COALESCE(
-            MIN(
-              (
-                metadata
-                ->> 'durationMs'
-              )::double precision
-            ),
+            MIN("durationMs"),
             0
           )::double precision
             AS "minMs",
 
           COALESCE(
-            MAX(
-              (
-                metadata
-                ->> 'durationMs'
-              )::double precision
-            ),
+            MAX("durationMs"),
             0
           )::double precision
             AS "maxMs",
@@ -448,27 +460,13 @@ export async function getPerformanceDurationStats(
           COALESCE(
             PERCENTILE_CONT(0.95)
               WITHIN GROUP (
-                ORDER BY
-                  (
-                    metadata
-                    ->> 'durationMs'
-                  )::double precision
+                ORDER BY "durationMs"
               ),
             0
           )::double precision
             AS "p95Ms"
 
-        FROM brewhub.telemetry_events
-
-        WHERE event_name =
-          'performance.sample'
-
-          AND metadata
-            ->> 'operation'
-            = ${operation}
-
-          AND metadata
-            ? 'durationMs'
+        FROM recent_samples
       `,
     )
 
