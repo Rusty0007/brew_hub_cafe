@@ -43,22 +43,29 @@ export async function findProducts(options: ProductQueryOptions = {},
 
   const whereCondition = and(...conditions)
 
-  const data = await db
+  const [
+  data,
+  totalResult,
+] = await Promise.all([
+  db
     .select()
     .from(products)
     .where(whereCondition)
-    .orderBy(asc(products.name))
+    .orderBy(
+      asc(products.name),
+    )
     .limit(limit)
-    .offset(offset)
-
-  const totalResult = await db
+    .offset(offset),
+  db
     .select({
       total: count(),
     })
     .from(products)
-    .where(whereCondition)
-
-  const total = totalResult[0]?.total ?? 0
+    .where(whereCondition),
+])
+const total =
+  totalResult[0]?.total
+  ?? 0
 
   return {
     data,
