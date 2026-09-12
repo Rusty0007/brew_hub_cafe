@@ -24,15 +24,15 @@ export async function findAuthenticationUserByEmail(
 }
 
 export async function authenticateUser(
-  username: string,
+  email: string,
   password: string,
 ) {
 
-  const user = await findUserByUsername(
-    username.trim(),
+  const user = await findUserByEmail(
+    email.trim(),
   )
 
-  // Do not reveal whether the username exists.
+  // Do not reveal whether the email exists.
   if (!user) {
     return null
   }

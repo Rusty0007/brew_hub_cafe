@@ -28,7 +28,7 @@ const registerDestination = computed(() => {
   return '/register'
 })
 
-const username = ref('')
+const email = ref('')
 const password = ref('')
 
 const isSubmitting = ref(false)
@@ -68,8 +68,8 @@ async function submitLogin() {
           method: 'POST',
         
           body: {
-            username:
-              username.value,
+            email:
+              email.value,
           
             password:
               password.value,
@@ -175,7 +175,7 @@ async function submitLogin() {
     showSuccess({
       title: 'Welcome to BrewHub',
       message:
-        `Signed in successfully as ${response.user.displayName || response.user.username}.`,
+        `Signed in successfully as ${response.user.displayName}.`,
       primaryLabel: 'Continue',
     })
 
@@ -241,13 +241,13 @@ async function submitLogin() {
 
     if (
   statusMessage
-  === 'Invalid username or password'
+  === 'Invalid email or password'
   || statusCode === 400
 ) {
   showError({
     title: 'Sign In Failed',
     message:
-      'The username or password you entered is incorrect.',
+      'The email or password you entered is incorrect.',
     primaryLabel: 'Try Again',
   })
 
@@ -341,25 +341,25 @@ showError({
           class="mt-8 space-y-5"
           @submit.prevent="submitLogin"
         >
-          <!-- Username -->
+          <!-- Email -->
           <div>
             <label
-              for="username"
+              for="email"
               class="text-sm font-medium text-brew-800"
             >
-              Username
+              Email
             </label>
 
             <input
-              id="username"
-              v-model="username"
-              name="username"
-              type="text"
-              autocomplete="username"
+              id="email"
+              v-model="email"
+              name="email"
+              type="email"
+              autocomplete="email"
               required
               autofocus
               class="mt-2 w-full rounded-2xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition placeholder:text-brew-400 focus:border-brew-500 focus:ring-2 focus:ring-brew-100"
-              placeholder="Enter your username"
+              placeholder="Enter your email"
             >
           </div>
 

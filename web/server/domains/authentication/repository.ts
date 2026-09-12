@@ -119,7 +119,22 @@ export async function findUserByEmail(
   const rows = await db
     .select({
       id: users.id,
-      email: users.email,
+      username:
+        users.username,
+      passwordHash:
+        users.passwordHash,
+      displayName:
+        users.displayName,
+      firstName:
+        users.firstName,
+      lastName:
+        users.lastName,
+      email:
+        users.email,
+      isActive:
+        users.isActive,
+      lastLoginAt:
+        users.lastLoginAt,
     })
     .from(users)
     .where(

@@ -10,6 +10,8 @@ export const usersInBrewhub = brewhub.table("users", {
 	username: varchar({ length: 80 }).notNull(),
 	passwordHash: text("password_hash").notNull(),
 	displayName: varchar("display_name", { length: 120 }).notNull(),
+	firstName: varchar("first_name", { length: 100 }),
+	lastName: varchar("last_name", { length: 100 }),
 	email: varchar({ length: 255 }),
 	isActive: boolean("is_active").default(true).notNull(),
 	lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: 'string' }),

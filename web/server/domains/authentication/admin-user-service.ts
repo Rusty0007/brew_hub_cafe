@@ -2,6 +2,10 @@ import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import {
+  randomUUID,
+} from 'node:crypto'
+
+import {
   auditLogs,
   roles,
   userRoles,
@@ -10,32 +14,38 @@ import {
 import { useDb } from '#server/utils/db'
 
 export const createStaffUserSchema = z.object({
-  username: z
+  firstName: z
     .string()
     .trim()
-    .min(3, 'Username must contain at least 3 characters.')
-    .max(80)
-    .regex(
-      /^[A-Za-z0-9._-]+$/,
-      'Username may only contain letters, numbers, dots, underscores, and hyphens.',
-    ),
+    .min(
+      1,
+      'First name is required.',
+    )
+    .max(100),
 
-  displayName: z
+  lastName: z
     .string()
     .trim()
-    .min(1, 'Display name is required.')
-    .max(120),
+    .min(
+      1,
+      'Last name is required.',
+    )
+    .max(100),
 
   email: z
     .string()
     .trim()
-    .email('Enter a valid email address.')
-    .optional()
-    .or(z.literal('')),
+    .email(
+      'Enter a valid email address.',
+    )
+    .max(255),
 
   password: z
     .string()
-    .min(12, 'Password must contain at least 12 characters.')
+    .min(
+      8,
+      'Password must contain at least 8 characters.',
+    )
     .max(128),
 
   role: z.enum([
@@ -61,6 +71,23 @@ export const updateStaffUserRoleSchema =
       .max(500),
   })
 
+export const deleteStaffUserSchema =
+  z.object({
+    reason: z
+      .string()
+      .trim()
+      .min(
+        3,
+        'Account deletion reason is required.',
+      )
+      .max(500),
+  })
+
+export type DeleteStaffUserInput =
+  z.infer<
+    typeof deleteStaffUserSchema
+  >
+
 export type UpdateStaffUserRoleInput =
   z.infer<
     typeof updateStaffUserRoleSchema
@@ -79,46 +106,39 @@ export async function createStaffUser(
 ) {
   const db = useDb()
 
-  const existingUsername = await db
+  const firstName =
+  input.firstName.trim()
+
+  const lastName =
+    input.lastName.trim()
+
+  const email =
+    input.email.trim().toLowerCase()
+
+  const displayName =
+    `${firstName} ${lastName}`
+
+  const legacyUsername =
+    `legacy-${randomUUID()}`
+
+  const existingEmail = await db
     .select({
       id: users.id,
     })
     .from(users)
     .where(
       sql`
-        lower(${users.username})
-        = lower(${input.username})
+        lower(${users.email})
+        = lower(${email})
       `,
     )
     .limit(1)
 
-  if (existingUsername.length > 0) {
+  if (existingEmail.length > 0) {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Username already exists',
+      statusMessage: 'Email already exists',
     })
-  }
-
-  if (input.email) {
-    const existingEmail = await db
-      .select({
-        id: users.id,
-      })
-      .from(users)
-      .where(
-        sql`
-          lower(${users.email})
-          = lower(${input.email})
-        `,
-      )
-      .limit(1)
-
-    if (existingEmail.length > 0) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Email already exists',
-      })
-    }
   }
 
   const roleRows = await db
@@ -149,18 +169,42 @@ export async function createStaffUser(
     const createdUsers = await tx
       .insert(users)
       .values({
-        username: input.username,
-        displayName: input.displayName,
-        email: input.email || null,
+        username:
+          legacyUsername,
+
+        displayName,
+
+        firstName,
+
+        lastName,
+
+        email,
+
         passwordHash,
+
         isActive: true,
       })
       .returning({
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        email: users.email,
-        isActive: users.isActive,
+        id:
+          users.id,
+
+        username:
+          users.username,
+
+        displayName:
+          users.displayName,
+
+        firstName:
+          users.firstName,
+
+        lastName:
+          users.lastName,
+
+        email:
+          users.email,
+
+        isActive:
+          users.isActive,
       })
 
     const user = createdUsers[0]
@@ -186,6 +230,216 @@ export async function createStaffUser(
       ],
     }
   })
+}
+
+interface DeleteStaffUserAuditContext {
+  actorUserId: number
+  traceId?: string | null
+}
+
+export async function deleteStaffUser(
+  userId: number,
+  input: DeleteStaffUserInput,
+  auditContext: DeleteStaffUserAuditContext,
+) {
+  const db = useDb()
+
+  return await db.transaction(
+    async (tx) => {
+      const targetUsers =
+        await tx
+          .select({
+            id: users.id,
+            username:
+              users.username,
+            displayName:
+              users.displayName,
+            email:
+              users.email,
+            isActive:
+              users.isActive,
+          })
+          .from(users)
+          .where(
+            eq(
+              users.id,
+              userId,
+            ),
+          )
+          .limit(1)
+
+      const targetUser =
+        targetUsers[0]
+
+      if (!targetUser) {
+        throw createError({
+          statusCode: 404,
+          statusMessage:
+            'Staff user not found',
+        })
+      }
+
+      if (
+        userId
+        === auditContext.actorUserId
+      ) {
+        throw createError({
+          statusCode: 403,
+          statusMessage:
+            'You cannot delete your own account',
+        })
+      }
+
+      const currentRoles =
+        await tx
+          .select({
+            code:
+              roles.code,
+          })
+          .from(userRoles)
+          .innerJoin(
+            roles,
+            eq(
+              userRoles.roleId,
+              roles.id,
+            ),
+          )
+          .where(
+            eq(
+              userRoles.userId,
+              userId,
+            ),
+          )
+
+      if (
+        currentRoles.length !== 1
+        || (
+          currentRoles[0]?.code
+            !== 'CASHIER'
+          && currentRoles[0]?.code
+            !== 'MANAGER'
+        )
+      ) {
+        throw createError({
+          statusCode: 403,
+          statusMessage:
+            'This account cannot be deleted',
+        })
+      }
+
+      const currentRole =
+        currentRoles[0]!.code
+
+      let deletedUsers:
+        Array<{
+          id: number
+        }>
+
+      try {
+        deletedUsers =
+          await tx
+            .delete(users)
+            .where(
+              eq(
+                users.id,
+                userId,
+              ),
+            )
+            .returning({
+              id:
+                users.id,
+            })
+      }
+      catch (error: unknown) {
+        const databaseError =
+          error as {
+            code?: string
+          }
+
+        if (
+          databaseError.code
+          === '23503'
+        ) {
+          throw createError({
+            statusCode: 409,
+            statusMessage:
+              'This staff account has historical records and cannot be permanently deleted',
+          })
+        }
+
+        throw error
+      }
+
+      if (
+        deletedUsers.length !== 1
+      ) {
+        throw createError({
+          statusCode: 409,
+          statusMessage:
+            'Staff account changed concurrently',
+        })
+      }
+
+      await tx
+        .insert(auditLogs)
+        .values({
+          actorUserId:
+            auditContext.actorUserId,
+
+          branchId:
+            null,
+
+          action:
+            'user.delete',
+
+          resourceType:
+            'user',
+
+          resourceId:
+            String(userId),
+
+          beforeData: {
+            username:
+              targetUser.username,
+
+            displayName:
+              targetUser.displayName,
+
+            email:
+              targetUser.email,
+
+            isActive:
+              targetUser.isActive,
+
+            role:
+              currentRole,
+          },
+
+          afterData: {
+            deleted:
+              true,
+          },
+
+          reason:
+            input.reason.trim(),
+
+          traceId:
+            auditContext.traceId
+            ?? null,
+        })
+
+      return {
+        ...targetUser,
+
+        roles: [
+          currentRole,
+        ],
+
+        deleted:
+          true,
+      }
+    },
+  )
 }
 
 export async function updateStaffUserRole(

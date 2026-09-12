@@ -15,8 +15,8 @@ type StaffRole =
   | 'CASHIER'
 
 const form = reactive({
-  username: '',
-  displayName: '',
+  firstName: '',
+  lastName: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -57,19 +57,28 @@ async function createAccount() {
       method: 'POST',
 
       body: {
-        username: form.username,
-        displayName: form.displayName,
-        email: form.email,
-        password: form.password,
-        role: form.role,
+        firstName:
+          form.firstName,
+
+        lastName:
+          form.lastName,
+
+        email:
+          form.email,
+
+        password:
+          form.password,
+
+        role:
+          form.role,
       },
     })
 
     successMessage.value =
       `${response.user.displayName} was created successfully.`
 
-    form.username = ''
-    form.displayName = ''
+    form.firstName = ''
+    form.lastName = ''
     form.email = ''
     form.password = ''
     form.confirmPassword = ''
@@ -128,37 +137,40 @@ async function createAccount() {
         class="grid gap-6 md:grid-cols-2"
       >
         <label class="block">
-          <span
-            class="text-sm font-medium text-brew-900"
-          >
-            Username
-          </span>
+      <span
+        class="text-sm font-medium text-brew-900"
+      >
+        First name
+      </span>
 
-          <input
-            v-model.trim="form.username"
-            required
-            minlength="3"
-            maxlength="80"
-            autocomplete="off"
-            class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
-          >
-        </label>
+      <input
+        v-model.trim="form.firstName"
+        type="text"
+        required
+        maxlength="100"
+        autocomplete="given-name"
+        class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
+        placeholder="Juan"
+      >
+    </label>
 
-        <label class="block">
-          <span
-            class="text-sm font-medium text-brew-900"
-          >
-            Display name
-          </span>
+    <label class="block">
+      <span
+        class="text-sm font-medium text-brew-900"
+      >
+        Last name
+      </span>
 
-          <input
-            v-model.trim="form.displayName"
-            required
-            maxlength="120"
-            autocomplete="off"
-            class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
-          >
-        </label>
+      <input
+        v-model.trim="form.lastName"
+        type="text"
+        required
+        maxlength="100"
+        autocomplete="family-name"
+        class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
+        placeholder="Dela Cruz"
+      >
+    </label>
 
         <label
           class="block md:col-span-2"
@@ -172,7 +184,9 @@ async function createAccount() {
           <input
             v-model.trim="form.email"
             type="email"
-            autocomplete="off"
+            required
+            maxlength="255"
+            autocomplete="email"
             class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
           >
         </label>
@@ -188,7 +202,7 @@ async function createAccount() {
             v-model="form.password"
             type="password"
             required
-            minlength="12"
+            minlength="8"
             maxlength="128"
             autocomplete="new-password"
             class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"
@@ -197,7 +211,7 @@ async function createAccount() {
           <span
             class="mt-2 block text-xs text-brew-400"
           >
-            Minimum 12 characters.
+            Minimum 8 characters.
           </span>
         </label>
 
@@ -212,7 +226,7 @@ async function createAccount() {
             v-model="form.confirmPassword"
             type="password"
             required
-            minlength="12"
+            minlength="8"
             maxlength="128"
             autocomplete="new-password"
             class="mt-2 w-full rounded-xl border border-brew-200 bg-brew-50 px-4 py-3 text-brew-950 outline-none transition focus:border-brew-500"

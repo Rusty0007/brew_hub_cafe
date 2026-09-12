@@ -25,16 +25,16 @@ import {
 } from '#server/utils/logger'
 
 const bodySchema = z.object({
-    username: z
+  email: z
     .string()
     .trim()
-    .min(3)
-    .max(80),
+    .email()
+    .max(255),
 
-    password: z
+  password: z
     .string()
     .min(8)
-    .max(128)
+    .max(128),
 })
 
 export default defineEventHandler(async (event) => {
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     try {
   const user =
     await authenticateUser(
-      parsed.data.username,
+      parsed.data.email,
       parsed.data.password,
     )
 
@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
         'sha256',
       )
         .update(
-          parsed.data.username
+          parsed.data.email
             .trim()
             .toLowerCase(),
         )
@@ -180,7 +180,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage:
-        'Invalid username or password',
+        'Invalid email or password',
     })
   }
 
