@@ -93,6 +93,49 @@ const {
     `/api/customer/orders/${orderId.value}`,
 )
 
+const ORDER_REFRESH_INTERVAL_MS =
+  4000
+
+let orderRefreshTimer:
+  number | null =
+    null
+
+async function autoRefreshOrder() {
+  if (
+    document.visibilityState
+      !== 'visible'
+    || pending.value
+  ) {
+    return
+  }
+
+  await refresh()
+}
+
+onMounted(() => {
+  orderRefreshTimer =
+    window.setInterval(
+      () => {
+        void autoRefreshOrder()
+      },
+      ORDER_REFRESH_INTERVAL_MS,
+    )
+})
+
+onBeforeUnmount(() => {
+  if (
+    orderRefreshTimer
+      !== null
+  ) {
+    window.clearInterval(
+      orderRefreshTimer,
+    )
+
+    orderRefreshTimer =
+      null
+  }
+})
+
 const order = computed(
   () => data.value?.order ?? null,
 )
@@ -299,6 +342,23 @@ async function submitCancellation() {
     return
   }
 
+    if (
+    order.value.paymentState
+    === 'VERIFYING'
+  ) {
+    showWarning({
+      title:
+        'Payment Being Verified',
+
+      message:
+        'This order cannot be cancelled while the payment result is still being verified.',
+
+      primaryLabel:
+        'OK',
+    })
+
+    return
+  }
 
   const reason =
     cancellationReason.value.trim()
@@ -512,7 +572,12 @@ function getApiErrorMessage(
     </NuxtLink>
 
     <!-- LOADING -->
-    <template v-if="pending">
+    <template
+      v-if="
+        pending
+        && !order
+      "
+    >
         <!-- ORDER HEADER SKELETON -->
         <section
           class="
@@ -1491,9 +1556,12 @@ function getApiErrorMessage(
         <!-- CANCEL ORDER -->
         <div
           v-if="
-            order.status === 'DRAFT'
-            || order.status === 'PENDING_PAYMENT'
-          "
+            (
+              order.status === 'DRAFT'
+              || order.status === 'PENDING_PAYMENT'
+            )
+            && order.paymentState !== 'VERIFYING'
+            "
           class="
             mt-6
             border-t border-brew-100

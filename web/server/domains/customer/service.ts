@@ -1,32 +1,21 @@
 import { z } from 'zod'
 
 import {
+  randomUUID,
+} from 'node:crypto'
+
+import {
   findAuthenticationUserByEmail,
-  findAuthenticationUserByUsername,
 } from '#server/domains/authentication/service'
 
 import {
   findCustomerByEmail,
   findCustomerByUserId,
+  findCustomerById,
   insertCustomerAccount,
 } from './repository'
 
 export const registerCustomerSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(
-      4,
-      'Username must contain at least 4 characters.',
-    )
-    .max(80)
-    .regex(
-      /^[A-Za-z0-9._-]+$/,
-      'Username may only contain letters, numbers, dots, underscores, and hyphens.',
-    )
-    .transform(
-      value => value.toLowerCase(),
-    ),
 
   firstName: z
     .string()
@@ -81,18 +70,9 @@ export type RegisterCustomerInput =
 export async function registerCustomer(
   input: RegisterCustomerInput,
 ) {
-  const existingUsername =
-  await findAuthenticationUserByUsername(
-    input.username,
-  )
 
-  if (existingUsername) {
-    throw createError({
-      statusCode: 409,
-      statusMessage:
-        'Username is already in use',
-    })
-  }
+  const legacyUsername =
+  `legacy-${randomUUID()}`
 
   const existingUserEmail =
   await findAuthenticationUserByEmail(
@@ -132,7 +112,7 @@ export async function registerCustomer(
   const account =
     await insertCustomerAccount({
       username:
-        input.username,
+        legacyUsername,
 
       passwordHash,
 
@@ -155,6 +135,33 @@ export async function registerCustomer(
     user: account.user,
     customer: account.customer,
   }
+}
+
+export async function getActiveCustomerById(
+  customerId: number,
+) {
+  const customer =
+    await findCustomerById(
+      customerId,
+    )
+
+  if (!customer) {
+    throw createError({
+      statusCode: 404,
+      statusMessage:
+        'Customer not found',
+    })
+  }
+
+  if (!customer.isActive) {
+    throw createError({
+      statusCode: 409,
+      statusMessage:
+        'Customer account is inactive',
+    })
+  }
+
+  return customer
 }
 
 export async function getActiveCustomerByUserId(

@@ -152,6 +152,11 @@ export const paymentsInBrewhub = brewhub.table("payments", {
 	transactionType: varchar("transaction_type", { length: 20 }).default('PAYMENT').notNull(),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	parentPaymentId: bigint("parent_payment_id", { mode: "number" }),
+
+	processedByUserId: bigint("processed_by_user_id", {
+	  mode: "number",
+	}),
+
 	method: varchar({ length: 40 }).notNull(),
 	provider: varchar({ length: 80 }),
 	providerReference: varchar("provider_reference", { length: 160 }),
@@ -176,8 +181,28 @@ export const paymentsInBrewhub = brewhub.table("payments", {
 			foreignColumns: [table.id],
 			name: "payments_parent_payment_id_fkey"
 		}).onDelete("restrict"),
+	foreignKey({
+	  columns: [table.processedByUserId],
+	  foreignColumns: [usersInBrewhub.id],
+	  name: "payments_processed_by_user_id_fkey"
+	}).onDelete("restrict"),
 	check("payments_transaction_type_check", sql`(transaction_type)::text = ANY ((ARRAY['PAYMENT'::character varying, 'REFUND'::character varying])::text[])`),
 	check("payments_amount_check", sql`amount > (0)::numeric`),
+	check(
+	  "payments_status_check",
+	  sql`
+	    (status)::text = ANY (
+	      (
+	        ARRAY[
+	          'PENDING'::character varying,
+	          'SUCCEEDED'::character varying,
+	          'FAILED'::character varying,
+	          'UNKNOWN'::character varying
+	        ]
+	      )::text[]
+	    )
+	  `,
+	),
 	check("ck_refund_has_parent", sql`(((transaction_type)::text = 'PAYMENT'::text) AND (parent_payment_id IS NULL)) OR (((transaction_type)::text = 'REFUND'::text) AND (parent_payment_id IS NOT NULL))`),
 ]);
 
@@ -225,6 +250,17 @@ export const ordersInBrewhub = brewhub.table("orders", {
 	customerId: bigint("customer_id", { mode: "number" }),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	createdByUserId: bigint("created_by_user_id", { mode: "number" }).notNull(),
+	cashierUserId:
+	  bigint(
+	    'cashier_user_id',
+	    { mode: 'number' },
+	  ),
+
+	managerUserId:
+	  bigint(
+	    'manager_user_id',
+	    { mode: 'number' },
+	  ),
 	status: varchar({ length: 32 }).default('DRAFT').notNull(),
 	subtotal: numeric({ precision: 14, scale:  2 }).default('0').notNull(),
 	discountAmount: numeric("discount_amount", { precision: 14, scale:  2 }).default('0').notNull(),
@@ -257,15 +293,59 @@ export const ordersInBrewhub = brewhub.table("orders", {
 			foreignColumns: [usersInBrewhub.id],
 			name: "orders_created_by_user_id_fkey"
 		}).onDelete("restrict"),
+	foreignKey({
+	  columns: [
+	    table.cashierUserId,
+	  ],
+	  foreignColumns: [
+	    usersInBrewhub.id,
+	  ],
+	  name:
+	    "orders_cashier_user_id_fkey",
+	}).onDelete("restrict"),
+
+	foreignKey({
+	  columns: [
+	    table.managerUserId,
+	  ],
+	  foreignColumns: [
+	    usersInBrewhub.id,
+	  ],
+	  name:
+	    "orders_manager_user_id_fkey",
+	}).onDelete("restrict"),
 	unique("orders_order_no_key").on(table.orderNo),
 	check("orders_subtotal_check", sql`subtotal >= (0)::numeric`),
 	check("orders_discount_amount_check", sql`discount_amount >= (0)::numeric`),
 	check("orders_tax_amount_check", sql`tax_amount >= (0)::numeric`),
 	check("orders_version_check", sql`version > 0`),
 	check("orders_source_check", sql`(source)::text = ANY ((ARRAY['CUSTOMER'::character varying, 'POS'::character varying])::text[])`),
-	check("orders_order_type_check", sql`(order_type)::text = ANY ((ARRAY['DINE_IN'::character varying, 'TAKEOUT'::character varying])::text[])`),
-	check("orders_status_check", sql`(status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PENDING_PAYMENT'::character varying, 'PAID'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying])::text[])`),
-]);
+	check(
+		  "orders_order_type_check",
+		  sql`(order_type)::text = ANY ((ARRAY[
+		    'DINE_IN'::character varying,
+		    'TAKEOUT'::character varying,
+		    'PICKUP'::character varying,
+		    'DELIVERY'::character varying
+		  ])::text[])`,
+		),
+	check(
+	  "orders_status_check",
+	  sql`
+	    (status)::text = ANY (
+	      (
+	        ARRAY[
+	          'DRAFT'::character varying,
+	          'PENDING_PAYMENT'::character varying,
+	          'PAID'::character varying,
+	          'COMPLETED'::character varying,
+	          'CANCELLED'::character varying
+	        ]
+	      )::text[]
+	    )
+	  `,
+	),
+	]);
 
 export const inventoryReservationsInBrewhub = brewhub.table("inventory_reservations", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
@@ -468,3 +548,195 @@ export const userBranchesInBrewhub = brewhub.table("user_branches", {
 		}).onDelete("restrict"),
 	primaryKey({ columns: [table.userId, table.branchId], name: "user_branches_pkey"}),
 ]);
+
+export const staffDutiesInBrewhub =
+  brewhub.table(
+    "staff_duties",
+    {
+      id:
+        bigint(
+          "id",
+          {
+            mode: "number",
+          },
+        )
+          .primaryKey()
+          .generatedAlwaysAsIdentity({
+            name:
+              "staff_duties_id_seq",
+            startWith: 1,
+            increment: 1,
+            minValue: 1,
+            maxValue:
+              9223372036854775807,
+            cache: 1,
+          }),
+
+      branchId:
+        bigint(
+          "branch_id",
+          {
+            mode: "number",
+          },
+        )
+          .notNull(),
+
+      userId:
+        bigint(
+          "user_id",
+          {
+            mode: "number",
+          },
+        )
+          .notNull(),
+
+      roleCode:
+        varchar(
+          "role_code",
+          {
+            length: 40,
+          },
+        )
+          .notNull(),
+
+      managerUserId:
+        bigint(
+          "manager_user_id",
+          {
+            mode: "number",
+          },
+        ),
+
+      startedAt:
+        timestamp(
+          "started_at",
+          {
+            withTimezone: true,
+            mode: "string",
+          },
+        )
+          .defaultNow()
+          .notNull(),
+
+      endedAt:
+        timestamp(
+          "ended_at",
+          {
+            withTimezone: true,
+            mode: "string",
+          },
+        ),
+
+      isActive:
+        boolean(
+          "is_active",
+        )
+          .default(true)
+          .notNull(),
+
+      createdAt:
+        timestamp(
+          "created_at",
+          {
+            withTimezone: true,
+            mode: "string",
+          },
+        )
+          .defaultNow()
+          .notNull(),
+
+      updatedAt:
+        timestamp(
+          "updated_at",
+          {
+            withTimezone: true,
+            mode: "string",
+          },
+        )
+          .defaultNow()
+          .notNull(),
+    },
+    table => [
+      index(
+        "ix_staff_duties_active_user",
+      ).on(
+        table.branchId,
+        table.userId,
+        table.isActive,
+      ),
+
+      foreignKey({
+        columns: [
+          table.branchId,
+        ],
+        foreignColumns: [
+          branchesInBrewhub.id,
+        ],
+        name:
+          "staff_duties_branch_id_fkey",
+      })
+        .onDelete(
+          "restrict",
+        ),
+
+      foreignKey({
+        columns: [
+          table.userId,
+        ],
+        foreignColumns: [
+          usersInBrewhub.id,
+        ],
+        name:
+          "staff_duties_user_id_fkey",
+      })
+        .onDelete(
+          "restrict",
+        ),
+
+      foreignKey({
+        columns: [
+          table.managerUserId,
+        ],
+        foreignColumns: [
+          usersInBrewhub.id,
+        ],
+        name:
+          "staff_duties_manager_user_id_fkey",
+      })
+        .onDelete(
+          "restrict",
+        ),
+
+      check(
+        "staff_duties_role_code_check",
+        sql`
+          role_code IN (
+            'MANAGER',
+            'CASHIER'
+          )
+        `,
+      ),
+
+      check(
+        "staff_duties_time_check",
+        sql`
+          ended_at IS NULL
+          OR ended_at >= started_at
+        `,
+      ),
+
+      check(
+        "staff_duties_manager_rule_check",
+        sql`
+          (
+            role_code = 'MANAGER'
+            AND manager_user_id IS NULL
+          )
+          OR
+          (
+            role_code = 'CASHIER'
+          )
+        `,
+      ),
+    ],
+  )

@@ -11,6 +11,7 @@ export {
   paymentsInBrewhub as payments,
 
   branchesInBrewhub as branches,
+  staffDutiesInBrewhub as staffDuties,
 
   inventoryInBrewhub as inventory,
   inventoryReservationsInBrewhub as inventoryReservations,

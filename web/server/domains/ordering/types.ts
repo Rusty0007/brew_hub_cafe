@@ -20,6 +20,8 @@ export type OrderSource =
 export const ORDER_TYPES = [
   'DINE_IN',
   'TAKEOUT',
+  'PICKUP',
+  'DELIVERY',
 ] as const
 
 export type OrderType =
@@ -42,7 +44,15 @@ export interface CreateOrderRecordInput {
   orderNo: string
   branchId: number
   customerId: number | null
+
   createdByUserId: number
+
+  cashierUserId:
+    number | null
+
+  managerUserId:
+    number | null
+
   source: OrderSource
   orderType: OrderType
 

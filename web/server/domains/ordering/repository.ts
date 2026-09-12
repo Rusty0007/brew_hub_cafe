@@ -6,9 +6,14 @@ import {
 } from 'drizzle-orm'
 
 import {
+  alias,
+} from 'drizzle-orm/pg-core'
+
+import {
   branches,
   orderItems,
   orders,
+  users,
 } from '#server/db/schema'
 
 import { useDb } from '#server/utils/db'
@@ -17,6 +22,24 @@ import type {
   CreateOrderRecordInput,
   OrderStatus,
 } from './types'
+
+const creatorUser =
+  alias(
+    users,
+    'creator_user',
+  )
+
+const cashierUser =
+  alias(
+    users,
+    'cashier_user',
+  )
+
+const managerUser =
+  alias(
+    users,
+    'manager_user',
+  )
 
 
 export async function findActiveBranchByCode(
@@ -56,8 +79,33 @@ export async function findOrderById(
 
       branchId: orders.branchId,
       customerId: orders.customerId,
+
       createdByUserId:
         orders.createdByUserId,
+
+      createdByFirstName:
+        creatorUser.firstName,
+
+      createdByLastName:
+        creatorUser.lastName,
+
+      cashierUserId:
+        orders.cashierUserId,
+
+      cashierFirstName:
+        cashierUser.firstName,
+
+      cashierLastName:
+        cashierUser.lastName,
+
+      managerUserId:
+        orders.managerUserId,
+
+      managerFirstName:
+        managerUser.firstName,
+
+      managerLastName:
+        managerUser.lastName,
 
       source: orders.source,
       orderType: orders.orderType,
@@ -89,6 +137,27 @@ export async function findOrderById(
         orders.cancellationReason,
     })
     .from(orders)
+    .leftJoin(
+      creatorUser,
+      eq(
+        orders.createdByUserId,
+        creatorUser.id,
+      ),
+    )
+    .leftJoin(
+      cashierUser,
+      eq(
+        orders.cashierUserId,
+        cashierUser.id,
+      ),
+    )
+    .leftJoin(
+      managerUser,
+      eq(
+        orders.managerUserId,
+        managerUser.id,
+      ),
+    )
     .where(
       eq(
         orders.id,
@@ -496,6 +565,30 @@ export async function findRecentOrders(
       createdByUserId:
         orders.createdByUserId,
 
+      createdByFirstName:
+        creatorUser.firstName,
+
+      createdByLastName:
+        creatorUser.lastName,
+
+      cashierUserId:
+        orders.cashierUserId,
+
+      cashierFirstName:
+        cashierUser.firstName,
+
+      cashierLastName:
+        cashierUser.lastName,
+
+      managerUserId:
+        orders.managerUserId,
+
+      managerFirstName:
+        managerUser.firstName,
+
+      managerLastName:
+        managerUser.lastName,
+
       source:
         orders.source,
 
@@ -530,6 +623,29 @@ export async function findRecentOrders(
         orders.cancelledAt,
     })
     .from(orders)
+
+    .leftJoin(
+      creatorUser,
+      eq(
+        orders.createdByUserId,
+        creatorUser.id,
+      ),
+    )
+    .leftJoin(
+      cashierUser,
+      eq(
+        orders.cashierUserId,
+        cashierUser.id,
+      ),
+    )
+    .leftJoin(
+      managerUser,
+      eq(
+        orders.managerUserId,
+        managerUser.id,
+      ),
+    )
+
     .orderBy(
       desc(
         orders.createdAt,
@@ -565,6 +681,12 @@ export async function insertOrderWithItems(
 
             createdByUserId:
               input.createdByUserId,
+
+            cashierUserId:
+              input.cashierUserId,
+
+            managerUserId:
+              input.managerUserId,
 
             source:
               input.source,
@@ -651,6 +773,12 @@ export async function insertOrderWithItems(
 
             createdByUserId:
               orders.createdByUserId,
+
+            cashierUserId:
+              orders.cashierUserId,
+
+            managerUserId:
+              orders.managerUserId,
 
             source:
               orders.source,

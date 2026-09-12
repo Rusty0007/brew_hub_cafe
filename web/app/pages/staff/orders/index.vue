@@ -13,6 +13,8 @@ type OrderSource =
 type OrderType =
   | 'DINE_IN'
   | 'TAKEOUT'
+  | 'PICKUP'
+  | 'DELIVERY'
 
 type OrderStatus =
   | 'DRAFT'
@@ -26,7 +28,19 @@ interface StaffOrder {
   orderNo: string
   branchId: number
   customerId: number | null
+
   createdByUserId: number
+  createdByFirstName: string | null
+  createdByLastName: string | null
+
+  cashierUserId: number | null
+  cashierFirstName: string | null
+  cashierLastName: string | null
+
+  managerUserId: number | null
+  managerFirstName: string | null
+  managerLastName: string | null
+
   source: OrderSource
   orderType: OrderType
   status: OrderStatus
@@ -58,6 +72,9 @@ const statusFilter =
 const search =
   ref('')
 
+const manualRefreshing =
+  ref(false)
+
 const {
   data,
   pending,
@@ -71,6 +88,54 @@ const {
     },
   },
 )
+
+const ORDER_REFRESH_INTERVAL_MS =
+  4000
+
+let orderRefreshTimer:
+  number | null =
+    null
+
+async function autoRefreshOrders() {
+  /*
+   * Avoid unnecessary requests while
+   * this browser tab is hidden or while
+   * another refresh is already running.
+   */
+  if (
+    document.visibilityState
+      !== 'visible'
+    || pending.value
+  ) {
+    return
+  }
+
+  await refresh()
+}
+
+onMounted(() => {
+  orderRefreshTimer =
+    window.setInterval(
+      () => {
+        void autoRefreshOrders()
+      },
+      ORDER_REFRESH_INTERVAL_MS,
+    )
+})
+
+onBeforeUnmount(() => {
+  if (
+    orderRefreshTimer
+      !== null
+  ) {
+    window.clearInterval(
+      orderRefreshTimer,
+    )
+
+    orderRefreshTimer =
+      null
+  }
+})
 
 const orders =
   computed(
@@ -158,12 +223,63 @@ function formatSource(
     : 'Customer'
 }
 
+function formatPersonName(
+  firstName: string | null,
+  lastName: string | null,
+) {
+  const name =
+    [
+      firstName?.trim(),
+      lastName?.trim(),
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+  return name || 'Name unavailable'
+}
+
+function getCreatedByPosition(
+  order: StaffOrder,
+) {
+  if (
+    order.source === 'CUSTOMER'
+  ) {
+    return 'Customer'
+  }
+
+  if (
+    order.cashierUserId
+      === order.createdByUserId
+  ) {
+    return 'Cashier'
+  }
+
+  if (
+    order.managerUserId
+      === order.createdByUserId
+  ) {
+    return 'Manager'
+  }
+
+  return 'Staff'
+}
+
 function formatOrderType(
   orderType: OrderType,
 ) {
-  return orderType === 'DINE_IN'
-    ? 'Dine in'
-    : 'Takeout'
+  switch (orderType) {
+    case 'DINE_IN':
+      return 'Dine in'
+
+    case 'PICKUP':
+      return 'Pickup'
+
+    case 'DELIVERY':
+      return 'Delivery'
+
+    default:
+      return 'Takeout'
+  }
 }
 
 function formatStatus(
@@ -235,7 +351,20 @@ function clearFilters() {
 }
 
 async function refreshOrders() {
-  await refresh()
+  if (manualRefreshing.value) {
+    return
+  }
+
+  manualRefreshing.value =
+    true
+
+  try {
+    await refresh()
+  }
+  finally {
+    manualRefreshing.value =
+      false
+  }
 }
 </script>
 
@@ -314,7 +443,7 @@ async function refreshOrders() {
 
       <button
         type="button"
-        :disabled="pending"
+        :disabled="manualRefreshing"
         class="
           rounded-xl
           border
@@ -334,7 +463,7 @@ async function refreshOrders() {
         @click="refreshOrders"
       >
         {{
-          pending
+          manualRefreshing
             ? 'Refreshing...'
             : 'Refresh'
         }}
@@ -512,72 +641,105 @@ async function refreshOrders() {
 
     <!-- LOADING -->
     <div
-      v-if="pending"
+      v-if="
+        pending
+        && orders.length === 0
+      "
+      role="status"
+      aria-label="Loading recent orders"
       class="
         mt-6
         rounded-3xl
         border
         border-brew-200
         bg-white
-        p-4 sm:p-8
-        text-center
-        text-brew-500
+        p-4 sm:p-6
       "
     >
-      Loading orders...
+      <AppTableSkeleton
+        :rows="8"
+        :columns="9"
+      />
     </div>
 
     <!-- ERROR -->
-    <div
-      v-else-if="error"
-      class="
-        mt-6
-        rounded-3xl
-        border
-        border-red-200
-        bg-red-50
-        p-4 sm:p-6
-        text-red-700
-      "
-    >
-      Unable to load recent orders.
-    </div>
+      <AppStatePanel
+        v-else-if="error"
+        class="mt-6"
+        variant="error"
+        title="Unable to load recent orders"
+        message="
+          BrewHub could not load the latest
+          customer and POS orders. Try again
+          to reload the order list.
+        "
+      >
+        <button
+          type="button"
+          class="
+            rounded-xl
+            bg-red-700
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-red-800
+          "
+          @click="refreshOrders"
+        >
+          Try Again
+        </button>
+      </AppStatePanel>
 
     <!-- EMPTY -->
-    <div
-      v-else-if="
-        filteredOrders.length === 0
-      "
-      class="
-        mt-6
-        rounded-3xl
-        border
-        border-brew-200
-        bg-white
-        p-4 sm:p-10
-        text-center
-      "
-    >
-      <h2
-        class="
-          text-lg
-          font-semibold
-          text-brew-950
+      <AppStatePanel
+        v-else-if="
+          filteredOrders.length === 0
+        "
+        class="mt-6"
+        variant="empty"
+        :title="
+          search
+          || sourceFilter
+          || statusFilter
+            ? 'No matching orders'
+            : 'No recent orders yet'
+        "
+        :message="
+          search
+          || sourceFilter
+          || statusFilter
+            ? 'No orders match the current search or filters.'
+            : 'Customer and POS orders will appear here once order activity begins.'
         "
       >
-        No orders found
-      </h2>
-
-      <p
-        class="
-          mt-2
-          text-sm
-          text-brew-500
-        "
-      >
-        Try changing your filters.
-      </p>
-    </div>
+        <button
+          v-if="
+            search
+            || sourceFilter
+            || statusFilter
+          "
+          type="button"
+          class="
+            rounded-xl
+            border
+            border-brew-200
+            bg-white
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-brew-700
+            transition
+            hover:bg-brew-50
+          "
+          @click="clearFilters"
+        >
+          Clear Filters
+        </button>
+      </AppStatePanel>
 
     <!-- ORDERS TABLE -->
     <div
@@ -628,6 +790,18 @@ async function refreshOrders() {
 
               <th class="px-5 py-4">
                 Type
+              </th>
+
+              <th class="px-5 py-4">
+                Created by
+              </th>
+
+              <th class="px-5 py-4">
+                Cashier
+              </th>
+
+              <th class="px-5 py-4">
+                Manager
               </th>
 
               <th class="px-5 py-4">
@@ -716,6 +890,116 @@ async function refreshOrders() {
                     order.orderType,
                   )
                 }}
+              </td>
+
+              <td
+                class="
+                  px-5
+                  py-4
+                  text-sm
+                  text-brew-700
+                "
+              >
+                <p class="font-medium text-brew-900">
+                  {{
+                    formatPersonName(
+                      order.createdByFirstName,
+                      order.createdByLastName,
+                    )
+                  }}
+                </p>
+
+                <p
+                  class="
+                    mt-1
+                    text-xs
+                    text-brew-400
+                  "
+                >
+                  {{ getCreatedByPosition(order) }}
+                </p>
+              </td>
+
+              <td
+                class="
+                  px-5
+                  py-4
+                  text-sm
+                  text-brew-700
+                "
+              >
+                <template
+                  v-if="
+                    order.cashierUserId !== null
+                  "
+                >
+                  <p class="font-medium text-brew-900">
+                    {{
+                      formatPersonName(
+                        order.cashierFirstName,
+                        order.cashierLastName,
+                      )
+                    }}
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-xs
+                      text-brew-400
+                    "
+                  >
+                    Cashier
+                  </p>
+                </template>
+
+                <span
+                  v-else
+                  class="text-brew-400"
+                >
+                  Unassigned
+                </span>
+              </td>
+
+              <td
+                class="
+                  px-5
+                  py-4
+                  text-sm
+                  text-brew-700
+                "
+              >
+                <template
+                  v-if="
+                    order.managerUserId !== null
+                  "
+                >
+                  <p class="font-medium text-brew-900">
+                    {{
+                      formatPersonName(
+                        order.managerFirstName,
+                        order.managerLastName,
+                      )
+                    }}
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-xs
+                      text-brew-400
+                    "
+                  >
+                    Manager
+                  </p>
+                </template>
+
+                <span
+                  v-else
+                  class="text-brew-400"
+                >
+                  Unassigned
+                </span>
               </td>
 
               <td class="px-5 py-4">

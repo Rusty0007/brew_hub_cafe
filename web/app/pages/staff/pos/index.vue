@@ -56,6 +56,20 @@ interface CategoriesResponse {
   }
 }
 
+interface PosCustomer {
+  id: number
+  customerNo: string | null
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  phone: string | null
+  isActive: boolean
+}
+
+interface CustomerSearchResponse {
+  customers: PosCustomer[]
+}
+
 interface PosLine {
   productId: number
   sku: string
@@ -67,6 +81,8 @@ interface PosLine {
 type PosOrderType =
   | 'DINE_IN'
   | 'TAKEOUT'
+  | 'PICKUP'
+  | 'DELIVERY'
 
 interface CreatedPosOrder {
   id: number
@@ -75,6 +91,10 @@ interface CreatedPosOrder {
   orderType: PosOrderType
   status: string
   totalAmount: number
+
+  paymentState:
+    | 'VERIFYING'
+    | null
 }
 
 interface CreatePosOrderResponse {
@@ -89,6 +109,23 @@ const appliedSearch =
   ref('')
 
 const selectedCategoryId =
+  ref('')
+
+const customerSearchInput =
+  ref('')
+
+const customerSearchResults =
+  ref<PosCustomer[]>([])
+
+const selectedCustomer =
+  ref<PosCustomer | null>(
+    null,
+  )
+
+const searchingCustomers =
+  ref(false)
+
+const customerSearchError =
   ref('')
 
 const posLines =
@@ -119,6 +156,9 @@ const createdOrder =
   ref<CreatedPosOrder | null>(
     null,
   )
+
+const createdOrderItemCount =
+  ref(0)
 
 const productQuery =
   computed(() => {
@@ -155,6 +195,7 @@ const {
   data: categoriesResponse,
   pending: categoriesPending,
   error: categoriesError,
+  refresh: refreshCategories,
 } = await useFetch<CategoriesResponse>(
   '/api/catalog/categories',
 )
@@ -163,6 +204,7 @@ const {
   data: productsResponse,
   pending: productsPending,
   error: productsError,
+  refresh: refreshProducts,
 } = await useFetch<ProductsResponse>(
   '/api/catalog/products',
   {
@@ -276,6 +318,22 @@ function getCategoryName(
 async function addProduct(
   product: CatalogProduct,
 ) {
+
+  if (createdOrder.value) {
+    showWarning({
+      title:
+        'Finish Current Order',
+
+      message:
+        'Complete or finish the current POS order before adding products to a new order.',
+
+      primaryLabel:
+        'OK',
+    })
+
+    return
+  }
+
   const startedAtMs =
     performance.now()
 
@@ -376,6 +434,11 @@ void $csrfFetch(
 function increaseQuantity(
   productId: number,
 ) {
+
+  if (createdOrder.value) {
+    return
+  }
+
   const line =
     posLines.value.find(
       item =>
@@ -393,6 +456,11 @@ function increaseQuantity(
 function decreaseQuantity(
   productId: number,
 ) {
+
+  if (createdOrder.value) {
+    return
+  }
+
   const line =
     posLines.value.find(
       item =>
@@ -418,6 +486,10 @@ function decreaseQuantity(
 function removeLine(
   productId: number,
 ) {
+  if (createdOrder.value) {
+    return
+  }
+
   posLines.value =
     posLines.value.filter(
       line =>
@@ -427,6 +499,10 @@ function removeLine(
 }
 
 async function clearOrder() {
+  if (createdOrder.value) {
+    return
+  }
+
   if (posLines.value.length === 0) {
     return
   }
@@ -459,6 +535,90 @@ function applySearch() {
 function clearSearch() {
   searchInput.value = ''
   appliedSearch.value = ''
+}
+
+async function searchCustomers() {
+  const search =
+    customerSearchInput.value.trim()
+
+  customerSearchError.value = ''
+
+  if (!search) {
+    customerSearchResults.value = []
+    return
+  }
+
+  searchingCustomers.value = true
+
+  try {
+    const response =
+      await $fetch<CustomerSearchResponse>(
+        '/api/staff/pos/customers',
+        {
+          query: {
+            search,
+          },
+        },
+      )
+
+    customerSearchResults.value =
+      response.customers
+  }
+  catch (error: unknown) {
+    customerSearchResults.value = []
+
+    customerSearchError.value =
+      getApiErrorMessage(
+        error,
+        'Unable to search customers.',
+      )
+  }
+  finally {
+    searchingCustomers.value = false
+  }
+}
+
+function selectCustomer(
+  customer: PosCustomer,
+) {
+  selectedCustomer.value =
+    customer
+
+  customerSearchInput.value = ''
+
+  customerSearchResults.value = []
+
+  customerSearchError.value = ''
+}
+
+function clearSelectedCustomer() {
+  selectedCustomer.value = null
+
+  customerSearchInput.value = ''
+
+  customerSearchResults.value = []
+
+  customerSearchError.value = ''
+}
+
+function getCustomerName(
+  customer: PosCustomer,
+) {
+  const name = [
+    customer.firstName,
+    customer.lastName,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+
+  return name || 'BrewHub Customer'
+}
+
+function clearProductFilters() {
+  searchInput.value = ''
+  appliedSearch.value = ''
+  selectedCategoryId.value = ''
 }
 
 function getApiErrorMessage(
@@ -539,10 +699,28 @@ async function submitPosOrder() {
 }
 
 
+ const orderTypeLabels:
+  Record<
+    PosOrderType,
+    string
+  > = {
+    DINE_IN:
+      'Dine in',
+
+    TAKEOUT:
+      'Takeout',
+
+    PICKUP:
+      'Pickup',
+
+    DELIVERY:
+      'Delivery',
+  }
+
   const orderTypeLabel =
-    orderType.value === 'DINE_IN'
-      ? 'Dine in'
-      : 'Takeout'
+    orderTypeLabels[
+      orderType.value
+    ]
 
   const confirmed =
     await showConfirm({
@@ -571,6 +749,11 @@ async function submitPosOrder() {
           method: 'POST',
 
           body: {
+            customerId:
+              selectedCustomer.value
+                ?.id
+              ?? null,
+
             orderType:
               orderType.value,
 
@@ -588,6 +771,13 @@ async function submitPosOrder() {
         },
       )
 
+    /*
+     * Preserve the confirmed item count
+     * before clearing the local draft.
+     */
+    createdOrderItemCount.value =
+      totalItems.value
+
     createdOrder.value =
       response.order
 
@@ -596,6 +786,17 @@ async function submitPosOrder() {
      * it now exists in PostgreSQL.
      */
     posLines.value = []
+
+    /*
+     * Customer attribution belongs only
+     * to the order that was just created.
+     *
+     * Reset it immediately so the next
+     * POS transaction starts as a guest
+     * and cannot inherit the previous
+     * customer's account by mistake.
+     */
+    clearSelectedCustomer()
 
     showSuccess({
       title: 'POS Order Created',
@@ -672,6 +873,24 @@ async function prepareCreatedOrderForPayment() {
 
 async function completeCreatedOrderPayment() {
   if (!createdOrder.value) {
+    return
+  }
+
+  if (
+    createdOrder.value.paymentState
+    === 'VERIFYING'
+  ) {
+    showWarning({
+      title:
+        'Payment Being Verified',
+
+      message:
+        'This payment cannot be submitted again while the previous payment result is still being verified.',
+
+      primaryLabel:
+        'OK',
+    })
+
     return
   }
 
@@ -768,6 +987,21 @@ async function simulateCreatedOrderPaymentTimeout() {
       )
     }
 
+        /*
+     * Keep the unresolved payment state
+     * in the current POS order.
+     *
+     * The order remains PENDING_PAYMENT,
+     * but another payment attempt must not
+     * be allowed while the result is unknown.
+     */
+    createdOrder.value = {
+      ...createdOrder.value,
+
+      paymentState:
+        'VERIFYING',
+    }
+
     showWarning({
       title: 'Payment Verification Required',
       message:
@@ -796,6 +1030,7 @@ async function simulateCreatedOrderPaymentTimeout() {
 
 function startNewPosOrder() {
   createdOrder.value = null
+  createdOrderItemCount.value = 0
   orderType.value = 'TAKEOUT'
   posLines.value = []
 }
@@ -904,9 +1139,17 @@ function startNewPosOrder() {
             text-brew-950
           "
         >
-          {{ totalItems }}
           {{
-            totalItems === 1
+           createdOrder
+            ? createdOrderItemCount
+            : totalItems
+          }}
+          {{
+            (
+              createdOrder
+                ? createdOrderItemCount
+                : totalItems
+            ) === 1
               ? 'item'
               : 'items'
           }}
@@ -922,6 +1165,337 @@ function startNewPosOrder() {
         lg:grid-cols-[minmax(0,1fr)_24rem]
       "
     >
+    <!-- CUSTOMER ATTRIBUTION -->
+    <section
+      class="
+        mt-8
+        rounded-3xl
+        border
+        border-brew-200
+        bg-white
+        p-5 sm:p-6
+        shadow-sm
+      "
+    >
+      <div
+        class="
+          flex
+          flex-col
+          gap-4
+          sm:flex-row
+          sm:items-start
+          sm:justify-between
+        "
+      >
+        <div>
+          <p
+            class="
+              text-xs
+              font-semibold
+              uppercase
+              tracking-[0.14em]
+              text-brew-400
+            "
+          >
+            Customer
+          </p>
+
+          <h2
+            class="
+              mt-2
+              text-xl
+              font-semibold
+              text-brew-950
+            "
+          >
+            {{
+              selectedCustomer
+                ? getCustomerName(
+                    selectedCustomer,
+                  )
+                : 'Walk-in / Guest'
+            }}
+          </h2>
+
+          <p
+            v-if="!selectedCustomer"
+            class="
+              mt-2
+              text-sm
+              leading-6
+              text-brew-500
+            "
+          >
+            This order will remain anonymous
+            unless an existing BrewHub customer
+            is selected.
+          </p>
+
+          <div
+            v-else
+            class="
+              mt-2
+              space-y-1
+              text-sm
+              text-brew-500
+            "
+          >
+            <p
+              v-if="
+                selectedCustomer.customerNo
+              "
+            >
+              Customer No:
+              <span
+                class="
+                  font-medium
+                  text-brew-800
+                "
+              >
+                {{
+                  selectedCustomer.customerNo
+                }}
+              </span>
+            </p>
+
+            <p
+              v-if="
+                selectedCustomer.email
+              "
+            >
+              {{
+                selectedCustomer.email
+              }}
+            </p>
+
+            <p
+              v-if="
+                selectedCustomer.phone
+              "
+            >
+              {{
+                selectedCustomer.phone
+              }}
+            </p>
+          </div>
+        </div>
+
+        <button
+          v-if="selectedCustomer"
+          type="button"
+          class="
+            rounded-xl
+            border
+            border-brew-200
+            px-4
+            py-2.5
+            text-sm
+            font-semibold
+            text-brew-700
+            transition
+            hover:bg-brew-50
+          "
+          @click="
+            clearSelectedCustomer
+          "
+        >
+          Use Walk-in / Guest
+        </button>
+      </div>
+
+      <form
+        v-if="!selectedCustomer"
+        class="
+          mt-6
+          flex
+          flex-col
+          gap-3
+          sm:flex-row
+        "
+        @submit.prevent="
+          searchCustomers
+        "
+      >
+        <input
+          v-model.trim="
+            customerSearchInput
+          "
+          type="search"
+          maxlength="255"
+          autocomplete="off"
+          placeholder="Customer No, name, email, or phone"
+          class="
+            min-w-0
+            flex-1
+            rounded-xl
+            border
+            border-brew-200
+            bg-brew-50
+            px-4
+            py-3
+            text-brew-950
+            outline-none
+            transition
+            placeholder:text-brew-400
+            focus:border-brew-500
+          "
+        >
+
+        <button
+          type="submit"
+          :disabled="
+            searchingCustomers
+            || !customerSearchInput.trim()
+          "
+          class="
+            rounded-xl
+            bg-brew-800
+            px-5
+            py-3
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-brew-900
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+        >
+          {{
+            searchingCustomers
+              ? 'Searching...'
+              : 'Find Customer'
+          }}
+        </button>
+      </form>
+
+      <p
+        v-if="
+          customerSearchError
+        "
+        class="
+          mt-4
+          text-sm
+          font-medium
+          text-red-600
+        "
+      >
+        {{ customerSearchError }}
+      </p>
+
+      <div
+        v-if="
+          !selectedCustomer
+          && customerSearchResults.length
+        "
+        class="
+          mt-5
+          divide-y
+          divide-brew-100
+          overflow-hidden
+          rounded-2xl
+          border
+          border-brew-200
+        "
+      >
+        <button
+          v-for="
+            customer
+            in customerSearchResults
+          "
+          :key="customer.id"
+          type="button"
+          class="
+            flex
+            w-full
+            items-start
+            justify-between
+            gap-4
+            bg-white
+            px-4
+            py-4
+            text-left
+            transition
+            hover:bg-brew-50
+          "
+          @click="
+            selectCustomer(
+              customer,
+            )
+          "
+        >
+          <div>
+            <p
+              class="
+                font-semibold
+                text-brew-950
+              "
+            >
+              {{
+                getCustomerName(
+                  customer,
+                )
+              }}
+            </p>
+
+            <p
+              class="
+                mt-1
+                text-sm
+                text-brew-500
+              "
+            >
+              {{
+                customer.customerNo
+                ?? 'No customer number'
+              }}
+            </p>
+
+            <p
+              v-if="customer.email"
+              class="
+                mt-1
+                text-sm
+                text-brew-400
+              "
+            >
+              {{ customer.email }}
+            </p>
+          </div>
+
+          <span
+            class="
+              shrink-0
+              text-sm
+              font-semibold
+              text-brew-700
+            "
+          >
+            Select
+          </span>
+        </button>
+      </div>
+
+      <p
+        v-if="
+          !selectedCustomer
+          && customerSearchInput.trim()
+          && !searchingCustomers
+          && !customerSearchError
+          && customerSearchResults.length
+            === 0
+        "
+        class="
+          mt-4
+          text-sm
+          text-brew-500
+        "
+      >
+        No matching customer selected.
+        The order can still continue as
+        Walk-in / Guest.
+      </p>
+    </section>
       <!-- PRODUCT CATALOG -->
       <div>
         <div
@@ -1057,23 +1631,22 @@ function startNewPosOrder() {
 
               <button
                 v-if="
-                  appliedSearch
+                  posLines.length > 0
                 "
                 type="button"
+                :disabled="
+                  Boolean(createdOrder)
+                "
                 class="
-                  rounded-xl
-                  border
-                  border-brew-200
-                  px-4
-                  py-2.5
-                  text-sm
+                  text-xs
                   font-semibold
-                  text-brew-700
-                  transition
-                  hover:bg-brew-50
+                  text-red-700
+                  hover:text-red-900
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
                 "
                 @click="
-                  clearSearch
+                  clearOrder
                 "
               >
                 Clear
@@ -1081,84 +1654,208 @@ function startNewPosOrder() {
             </div>
           </form>
 
-          <p
+          <div
             v-if="categoriesError"
             class="
               mt-4
-              text-sm
-              text-red-700
+              flex
+              flex-wrap
+              items-center
+              justify-between
+              gap-3
+              rounded-xl
+              border
+              border-red-200
+              bg-red-50
+              px-4
+              py-3
             "
+            role="alert"
           >
-            Unable to load
-            product categories.
-          </p>
+            <p
+              class="
+                text-sm
+                text-red-700
+              "
+            >
+              Unable to load product categories.
+            </p>
+
+            <button
+              type="button"
+              class="
+                rounded-lg
+                border
+                border-red-300
+                bg-white
+                px-3
+                py-1.5
+                text-xs
+                font-semibold
+                text-red-800
+                transition
+                hover:bg-red-100
+              "
+              @click="refreshCategories()"
+            >
+              Retry
+            </button>
+          </div>
         </div>
 
         <div
-          v-if="productsPending"
+  v-if="productsPending"
           class="
             mt-6
-            rounded-3xl
-            border
-            border-brew-200
-            bg-white
-            p-4 sm:p-8
-            text-center
-            text-brew-500
+            grid
+            gap-4
+            sm:grid-cols-2
+            xl:grid-cols-3
           "
+          role="status"
+          aria-label="Loading products"
         >
-          Loading products...
+          <article
+            v-for="item in 6"
+            :key="item"
+            class="
+              flex
+              flex-col
+              rounded-3xl
+              border
+              border-brew-200
+              bg-white
+              p-5
+              shadow-sm
+            "
+            aria-hidden="true"
+          >
+            <div
+              class="
+                flex
+                items-start
+                justify-between
+                gap-4
+              "
+            >
+              <div class="min-w-0 flex-1">
+                <AppSkeleton
+                  class="h-3 w-20"
+                />
+
+                <AppSkeleton
+                  class="
+                    mt-3
+                    h-6
+                    w-3/4
+                  "
+                />
+
+                <AppSkeleton
+                  class="
+                    mt-2
+                    h-3
+                    w-28
+                  "
+                />
+              </div>
+
+              <AppSkeleton
+                class="
+                  h-7
+                  w-20
+                  rounded-full
+                "
+              />
+            </div>
+
+            <div
+              class="
+                mt-auto
+                pt-6
+              "
+            >
+              <AppSkeleton
+                class="h-7 w-24"
+              />
+
+              <AppSkeleton
+                class="
+                  mt-4
+                  h-10
+                  w-full
+                  rounded-xl
+                "
+              />
+            </div>
+          </article>
         </div>
 
-        <div
+        <AppStatePanel
           v-else-if="productsError"
-          class="
-            mt-6
-            rounded-3xl
-            border
-            border-red-200
-            bg-red-50
-            p-4 sm:p-6
-            text-red-700
+          class="mt-6"
+          variant="error"
+          title="Unable to load products"
+          message="
+            BrewHub could not load the POS
+            product catalog. Check the
+            connection and try again.
           "
         >
-          Unable to load products.
-        </div>
+          <button
+            type="button"
+            class="
+              rounded-xl
+              bg-red-700
+              px-5
+              py-2.5
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-red-800
+            "
+            @click="refreshProducts()"
+          >
+            Try Again
+          </button>
+        </AppStatePanel>
 
-        <div
+        <AppStatePanel
           v-else-if="
             products.length === 0
           "
-          class="
-            mt-6
-            rounded-3xl
-            border
-            border-brew-200
-            bg-white
-            p-4 sm:p-8
-            text-center
+          class="mt-6"
+          title="No products found"
+          message="
+            No products match the current
+            search or category filter.
           "
         >
-          <h2
-            class="
-              font-semibold
-              text-brew-950
+          <button
+            v-if="
+              appliedSearch
+              || selectedCategoryId
             "
-          >
-            No products found
-          </h2>
-
-          <p
+            type="button"
             class="
-              mt-2
+              rounded-xl
+              border
+              border-brew-200
+              bg-white
+              px-5
+              py-2.5
               text-sm
-              text-brew-500
+              font-semibold
+              text-brew-800
+              transition
+              hover:bg-brew-50
             "
+            @click="clearProductFilters"
           >
-            Try another search or
-            category.
-          </p>
-        </div>
+            Clear Filters
+          </button>
+        </AppStatePanel>
 
         <div
           v-else
@@ -1276,6 +1973,9 @@ function startNewPosOrder() {
 
               <button
                 type="button"
+                :disabled="
+                  Boolean(createdOrder)
+                "
                 class="
                   mt-4
                   w-full
@@ -1287,6 +1987,8 @@ function startNewPosOrder() {
                   text-white
                   transition
                   hover:opacity-90
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
                 "
                 style="
                   background-color:
@@ -1298,7 +2000,11 @@ function startNewPosOrder() {
                   )
                 "
               >
-                Add to Order
+                {{
+                  createdOrder
+                    ? 'Finish Current Order'
+                    : 'Add to Order'
+                }}
               </button>
             </div>
           </article>
@@ -1430,13 +2136,23 @@ function startNewPosOrder() {
                 <option value="DINE_IN">
                   Dine in
                 </option>
+
+                <option value="PICKUP">
+                  Pickup
+                </option>
+
+                <option value="DELIVERY">
+                  Delivery
+                </option>
               </select>
             </label>
 
           <div
-            v-if="
-              posLines.length === 0
-            "
+            <div
+              v-if="
+                posLines.length === 0
+                && !createdOrder
+              "
             class="
               mt-8
               rounded-2xl
@@ -1470,7 +2186,9 @@ function startNewPosOrder() {
           </div>
 
           <div
-            v-else
+            v-else-if="
+            posLines.length > 0
+            "
             class="
               mt-6
               space-y-4
@@ -1521,11 +2239,16 @@ function startNewPosOrder() {
 
                 <button
                   type="button"
+                  :disabled="
+                    Boolean(createdOrder)
+                  "
                   class="
                     text-xs
                     font-semibold
                     text-red-700
                     hover:text-red-900
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
                   "
                   @click="
                     removeLine(
@@ -1554,12 +2277,17 @@ function startNewPosOrder() {
                 >
                   <button
                     type="button"
+                    :disabled="
+                      Boolean(createdOrder)
+                    "
                     class="
                       min-w-11
                       px-3
                       py-1.5
                       font-semibold
                       text-brew-700
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
                     "
                     :aria-label="`Decrease ${line.name}`"
                     @click="
@@ -1585,12 +2313,17 @@ function startNewPosOrder() {
 
                   <button
                     type="button"
+                    :disabled="
+                      Boolean(createdOrder)
+                    "
                     class="
                       min-w-11
                       px-3
                       py-1.5
                       font-semibold
                       text-brew-700
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
                     "
                     :aria-label="`Increase ${line.name}`"
                     @click="
@@ -1649,7 +2382,11 @@ function startNewPosOrder() {
                   text-brew-950
                 "
               >
-                {{ totalItems }}
+                {{
+                createdOrder
+                  ? createdOrderItemCount
+                  : totalItems
+                }}
               </span>
             </div>
 
@@ -1666,7 +2403,11 @@ function startNewPosOrder() {
                   text-brew-950
                 "
               >
-                Subtotal
+                {{
+                  createdOrder
+                    ? 'Order Total'
+                    : 'Subtotal'
+                }}
               </span>
 
               <span
@@ -1677,69 +2418,73 @@ function startNewPosOrder() {
                 "
               >
                 {{
-                  formatMoney(
-                    subtotal,
-                  )
+                formatMoney(
+                  createdOrder
+                    ? Number(
+                        createdOrder.totalAmount,
+                      )
+                    : subtotal,
+                )
                 }}
               </span>
             </div>
           </div>
 
-<div
-  v-if="
-    posLines.length > 0
-    && !createdOrder
-  "
-  class="mt-6"
->
-  <button
-    type="button"
-    :disabled="
-      creatingOrder
-    "
-    class="
-      w-full
-      rounded-xl
-      px-5
-      py-3
-      text-sm
-      font-semibold
-      text-white
-      transition
-      hover:opacity-90
-      disabled:cursor-not-allowed
-      disabled:opacity-60
-    "
-    style="
-      background-color:
-        var(--color-brew-800);
-    "
-    @click="
-      submitPosOrder
-    "
-  >
-    {{
-      creatingOrder
-        ? 'Creating Order...'
-        : 'Create POS Order'
-    }}
-  </button>
+        <div
+          v-if="
+            posLines.length > 0
+            && !createdOrder
+          "
+          class="mt-6"
+        >
+          <button
+            type="button"
+            :disabled="
+              creatingOrder
+            "
+            class="
+              w-full
+              rounded-xl
+              px-5
+              py-3
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:opacity-90
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
+            style="
+              background-color:
+                var(--color-brew-800);
+            "
+            @click="
+              submitPosOrder
+            "
+          >
+            {{
+              creatingOrder
+                ? 'Creating Order...'
+                : 'Create POS Order'
+            }}
+          </button>
 
-  <p
-    class="
-      mt-3
-      text-center
-      text-xs
-      leading-5
-      text-brew-500
-    "
-  >
-    Product prices will be
-    validated again by the
-    server before the order
-    is created.
-  </p>
-</div>
+          <p
+            class="
+              mt-3
+              text-center
+              text-xs
+              leading-5
+              text-brew-500
+            "
+          >
+            Product prices will be
+            validated again by the
+            server before the order
+            is created.
+          </p>
+        </div>
 
         <div
           v-if="createdOrder"
@@ -1761,7 +2506,17 @@ function startNewPosOrder() {
               text-green-700
             "
           >
-            Order Created
+            {{
+              createdOrder.status === 'COMPLETED'
+                ? 'Order Completed'
+                : createdOrder.status === 'PENDING_PAYMENT'
+                  ? (
+                      createdOrder.paymentState === 'VERIFYING'
+                        ? 'Payment Verification'
+                        : 'Payment Pending'
+                    )
+                  : 'Order Created'
+            }}
           </p>
 
           <h3
@@ -1825,8 +2580,28 @@ function startNewPosOrder() {
                   createdOrder.orderType
                   === 'DINE_IN'
                     ? 'Dine in'
-                    : 'Takeout'
+                    : createdOrder.orderType
+                        === 'PICKUP'
+                      ? 'Pickup'
+                      : createdOrder.orderType
+                          === 'DELIVERY'
+                        ? 'Delivery'
+                        : 'Takeout'
                 }}
+              </strong>
+            </div>
+
+            <div
+              class="
+                flex
+                justify-between
+                gap-4
+              "
+            >
+              <span>Items</span>
+
+              <strong>
+                {{ createdOrderItemCount }}
               </strong>
             </div>
 
@@ -1888,9 +2663,11 @@ function startNewPosOrder() {
             </button>
 
             <div
-              v-else-if="
+              v-if="
                 createdOrder.status
                 === 'PENDING_PAYMENT'
+                && createdOrder.paymentState
+                  !== 'VERIFYING'
               "
               class="
                 mt-5
@@ -1925,10 +2702,57 @@ function startNewPosOrder() {
               </p>
             </div>
 
-            <button
+            <div
               v-if="
                 createdOrder.status
                 === 'PENDING_PAYMENT'
+                && createdOrder.paymentState
+                  === 'VERIFYING'
+              "
+              class="
+                mt-5
+                rounded-xl
+                border
+                border-amber-300
+                bg-amber-50
+                px-4
+                py-4
+              "
+              role="status"
+              aria-live="polite"
+            >
+              <p
+                class="
+                  font-semibold
+                  text-amber-900
+                "
+              >
+                Payment is being verified
+              </p>
+
+              <p
+                class="
+                  mt-1
+                  text-sm
+                  leading-6
+                  text-amber-800
+                "
+              >
+                The payment provider did not return
+                a final result.
+
+                Do not collect or submit another
+                payment while BrewHub verifies the
+                current payment status.
+              </p>
+            </div>
+
+            <button
+              v-else-if="
+                createdOrder.status
+                === 'PENDING_PAYMENT'
+                && createdOrder.paymentState
+                !== 'VERIFYING'
               "
               type="button"
               :disabled="
@@ -2002,12 +2826,12 @@ function startNewPosOrder() {
             </div>
 
           <button
-            v-if="
-            createdOrder.status === 'DRAFT'
-            || createdOrder.status === 'COMPLETED'
-            "
-
-            type="button"
+            <button
+              v-if="
+                createdOrder.status
+                === 'COMPLETED'
+              "
+              type="button"
             class="
               mt-5
               w-full
@@ -2035,6 +2859,8 @@ function startNewPosOrder() {
               isDevelopment
               && createdOrder.status
                 === 'PENDING_PAYMENT'
+                && createdOrder.paymentState
+                !== 'VERIFYING'
             "
             type="button"
             :disabled="
@@ -2068,7 +2894,7 @@ function startNewPosOrder() {
                 : 'TESDA: Simulate Payment Timeout'
             }}
           </button>
-         
+
         </div>
         </div>
       </aside>

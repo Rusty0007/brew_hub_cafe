@@ -20,9 +20,26 @@ interface OrderDetails {
     orderNo: string
     branchId: number
     customerId: number | null
+
     createdByUserId: number
+    createdByFirstName: string | null
+    createdByLastName: string | null
+
+    cashierUserId: number | null
+    cashierFirstName: string | null
+    cashierLastName: string | null
+
+    managerUserId: number | null
+    managerFirstName: string | null
+    managerLastName: string | null
+
     source: 'CUSTOMER' | 'POS'
-    orderType: 'DINE_IN' | 'TAKEOUT'
+
+    orderType:
+      | 'DINE_IN'
+      | 'TAKEOUT'
+      | 'PICKUP'
+      | 'DELIVERY'
     status:
       | 'DRAFT'
       | 'PENDING_PAYMENT'
@@ -68,6 +85,11 @@ interface OrderDetails {
     failureMessage: string | null
     createdAt: string
     updatedAt: string
+
+    processedByUserId: number | null
+    processedByFirstName: string | null
+    processedByLastName: string | null
+    processedByRole: string | null
     processedAt: string | null
   }>
 
@@ -507,9 +529,50 @@ async function simulateDatabaseFailure() {
         : 'Unable to process'
   }
   finally {
-    simulatingDatabaseFailure.value =
+  simulatingDatabaseFailure.value =
       false
+    }
   }
+
+  function formatPersonName(
+  firstName: string | null,
+  lastName: string | null,
+) {
+  const name =
+    [
+      firstName?.trim(),
+      lastName?.trim(),
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+  return name || 'Name unavailable'
+}
+
+function getCreatedByPosition(
+  order: OrderDetails['order'],
+) {
+  if (
+    order.source === 'CUSTOMER'
+  ) {
+    return 'Customer'
+  }
+
+  if (
+    order.cashierUserId
+      === order.createdByUserId
+  ) {
+    return 'Cashier'
+  }
+
+  if (
+    order.managerUserId
+      === order.createdByUserId
+  ) {
+    return 'Manager'
+  }
+
+  return 'Staff'
 }
 </script>
 
@@ -812,14 +875,135 @@ async function simulateDatabaseFailure() {
             </div>
 
             <div>
-              <p class="text-xs text-brew-500">
-                Created By User
-              </p>
+            <p class="text-xs text-brew-500">
+              Created By
+            </p>
 
-              <p class="mt-1 font-medium text-brew-900">
-                #{{ details.order.createdByUserId }}
-              </p>
-            </div>
+            <p
+              class="
+                mt-1
+                font-medium
+                text-brew-900
+              "
+            >
+              {{
+                formatPersonName(
+                  details.order.createdByFirstName,
+                  details.order.createdByLastName,
+                )
+              }}
+            </p>
+
+            <p
+              class="
+                mt-1
+                text-xs
+                text-brew-400
+              "
+            >
+              {{
+                getCreatedByPosition(
+                  details.order,
+                )
+              }}
+            </p>
+          </div>
+
+          <div>
+          <p class="text-xs text-brew-500">
+            Cashier
+          </p>
+
+          <template
+            v-if="
+              details.order.cashierUserId
+                !== null
+            "
+          >
+            <p
+              class="
+                mt-1
+                font-medium
+                text-brew-900
+              "
+            >
+              {{
+                formatPersonName(
+                  details.order.cashierFirstName,
+                  details.order.cashierLastName,
+                )
+              }}
+            </p>
+
+            <p
+              class="
+                mt-1
+                text-xs
+                text-brew-400
+              "
+            >
+              Cashier
+            </p>
+          </template>
+
+          <p
+            v-else
+            class="
+              mt-1
+              text-brew-400
+            "
+          >
+            Unassigned
+          </p>
+        </div>
+
+          <div>
+          <p class="text-xs text-brew-500">
+            Manager
+          </p>
+
+          <template
+            v-if="
+              details.order.managerUserId
+                !== null
+            "
+          >
+            <p
+              class="
+                mt-1
+                font-medium
+                text-brew-900
+              "
+            >
+              {{
+                formatPersonName(
+                  details.order.managerFirstName,
+                  details.order.managerLastName,
+                )
+              }}
+            </p>
+
+            <p
+              class="
+                mt-1
+                text-xs
+                text-brew-400
+              "
+            >
+              Manager
+            </p>
+          </template>
+
+          <p
+            v-else
+            class="
+              mt-1
+              text-brew-400
+            "
+          >
+            Unassigned
+          </p>
+        </div>
           </div>
 
           <div
@@ -1692,6 +1876,67 @@ async function simulateDatabaseFailure() {
                   )
                 }}
               </p>
+              <div class="mt-3">
+              <p
+                class="
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-wide
+                  text-brew-400
+                "
+              >
+                Processed by
+              </p>
+
+              <template
+                v-if="
+                  payment.processedByUserId
+                    !== null
+                "
+              >
+                <p
+                  class="
+                    mt-1
+                    text-sm
+                    font-semibold
+                    text-brew-900
+                  "
+                >
+                  {{
+                    formatPersonName(
+                      payment.processedByFirstName,
+                      payment.processedByLastName,
+                    )
+                  }}
+                </p>
+
+                <p
+                  class="
+                    mt-1
+                    text-xs
+                    text-brew-500
+                  "
+                >
+                  {{
+                    payment.processedByRole
+                      || 'Staff'
+                  }}
+                </p>
+              </template>
+
+              <p
+                v-else
+                class="
+                  mt-1
+                  text-sm
+                  font-semibold
+                  text-brew-900
+                "
+              >
+                System / Provider
+              </p>
+            </div>
             </div>
 
             <div

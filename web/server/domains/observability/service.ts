@@ -12,6 +12,7 @@ import {
   countRequestLogs,
   countTelemetryEventsByName,
   findRecentRequestLogs,
+  findRecentTelemetryEvents,
   getRequestDurationStats,
   insertTelemetryEvent,
   getDeadlockTotal,
@@ -119,6 +120,139 @@ export async function getRecentRequestLogs(
       completedAt:
         new Date(
           row.completedAt,
+        ).toISOString(),
+    }),
+  )
+}
+
+const sensitiveTelemetryKeyPattern =
+  /password|passcode|token|secret|authorization|cookie|session|csrf|api[_-]?key|credential/i
+
+function sanitizeTelemetryValue(
+  value: unknown,
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map(
+      item =>
+        sanitizeTelemetryValue(
+          item,
+        ),
+    )
+  }
+
+  if (
+    value !== null
+    && typeof value === 'object'
+  ) {
+    const entries =
+      Object.entries(
+        value as Record<
+          string,
+          unknown
+        >,
+      )
+
+    return Object.fromEntries(
+      entries.map(
+        ([key, nestedValue]) => [
+          key,
+
+          sensitiveTelemetryKeyPattern
+            .test(key)
+            ? '[REDACTED]'
+            : sanitizeTelemetryValue(
+                nestedValue,
+              ),
+        ],
+      ),
+    )
+  }
+
+  return value
+}
+
+function sanitizeTelemetryMetadata(
+  metadata:
+    Record<string, unknown>,
+) {
+  const sanitized =
+    sanitizeTelemetryValue(
+      metadata,
+    )
+
+  if (
+    sanitized !== null
+    && typeof sanitized === 'object'
+    && !Array.isArray(
+      sanitized,
+    )
+  ) {
+    return sanitized as
+      Record<string, unknown>
+  }
+
+  return {}
+}
+
+export async function getRecentTelemetryEvents(
+  limit = 200,
+) {
+  const rows =
+    await findRecentTelemetryEvents(
+      limit,
+    )
+
+  return rows.map(
+    row => ({
+      id:
+        Number(
+          row.id,
+        ),
+
+      eventName:
+        row.eventName,
+
+      requestId:
+        row.requestId,
+
+      traceId:
+        row.traceId,
+
+      userId:
+        row.userId === null
+          ? null
+          : Number(
+              row.userId,
+            ),
+
+      branchId:
+        row.branchId === null
+          ? null
+          : Number(
+              row.branchId,
+            ),
+
+      orderId:
+        row.orderId === null
+          ? null
+          : Number(
+              row.orderId,
+            ),
+
+      source:
+        row.source,
+
+      result:
+        row.result,
+
+      metadata:
+        sanitizeTelemetryMetadata(
+          row.metadata,
+        ),
+
+      createdAt:
+        new Date(
+          row.createdAt,
         ).toISOString(),
     }),
   )
@@ -734,9 +868,11 @@ export interface RecordCheckoutStageInput {
     number | null
 
   orderType?:
-    | 'DINE_IN'
-    | 'TAKEOUT'
-    | null
+  | 'DINE_IN'
+  | 'TAKEOUT'
+  | 'PICKUP'
+  | 'DELIVERY'
+  | null
 
   result?:
     | 'success'

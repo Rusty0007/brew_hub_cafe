@@ -32,6 +32,10 @@ import {
   recordTelemetryEvent
  } from '#server/domains/observability/service'
 
+import {
+  verifyDevelopmentCustomerPayment,
+} from '#server/domains/payment/service'
+
 const IDEMPOTENCY_OPERATION =
   'customer.simulate-payment'
 
@@ -433,21 +437,17 @@ export default defineEventHandler(
     )
 
     try {
+      const verifiedPayment =
+        verifyDevelopmentCustomerPayment(
+          orderId,
+        )
+
       const result =
         await completeCustomerCheckout(
           user.id,
           orderId,
-          {
-            method:
-              'TEST',
-
-            provider:
-              'BREWHUB_TEST',
-
-            providerReference:
-              `TEST-ORDER-${orderId}`,
-          },
-          requestContext.traceId,
+          verifiedPayment,
+          requestContext.traceId
         )
 
       logInfo(

@@ -2,11 +2,19 @@ import {
   and,
   desc,
   eq,
+  sql,
 } from 'drizzle-orm'
+
+import {
+  alias
+} from 'drizzle-orm/pg-core'
 
 import {
   auditLogs,
   payments,
+  roles,
+  userRoles,
+  users,
 } from '#server/db/schema'
 
 import {
@@ -16,6 +24,12 @@ import {
 import type {
   CreatePaymentRecordInput,
 } from './types'
+
+const paymentProcessorUser =
+  alias(
+    users,
+    'payment_processor_user',
+  )
 
 interface RefundOriginalPaymentAuditData {
   id: number
@@ -54,6 +68,9 @@ export async function findPaymentByProviderReference(
 
         parentPaymentId:
           payments.parentPaymentId,
+
+        processedByUserId:
+          payments.processedByUserId,
 
         method:
           payments.method,
@@ -124,6 +141,38 @@ export async function findPaymentsByOrderId(
       parentPaymentId:
         payments.parentPaymentId,
 
+      processedByUserId:
+        payments.processedByUserId,
+
+      processedByFirstName:
+        paymentProcessorUser.firstName,
+
+      processedByLastName:
+        paymentProcessorUser.lastName,
+
+      processedByRole:
+        sql<string | null>`
+          (
+            SELECT ${roles.name}
+            FROM ${userRoles}
+            INNER JOIN ${roles}
+              ON ${roles.id}
+                = ${userRoles.roleId}
+            WHERE
+              ${userRoles.userId}
+                = ${payments.processedByUserId}
+              AND ${roles.code}
+                IN ('CASHIER', 'MANAGER')
+            ORDER BY
+              CASE ${roles.code}
+                WHEN 'MANAGER' THEN 1
+                WHEN 'CASHIER' THEN 2
+                ELSE 3
+              END
+            LIMIT 1
+          )
+        `,
+
       method:
         payments.method,
 
@@ -155,6 +204,13 @@ export async function findPaymentsByOrderId(
         payments.processedAt,
     })
     .from(payments)
+    .leftJoin(
+      paymentProcessorUser,
+      eq(
+        paymentProcessorUser.id,
+        payments.processedByUserId,
+      ),
+    )
     .where(
       eq(
         payments.orderId,
@@ -186,6 +242,9 @@ export async function insertPaymentRecord(
 
         parentPaymentId:
           input.parentPaymentId,
+
+        processedByUserId:
+          input.processedByUserId,
 
         method:
           input.method,
@@ -223,6 +282,9 @@ export async function insertPaymentRecord(
 
         parentPaymentId:
           payments.parentPaymentId,
+
+        processedByUserId:
+          payments.processedByUserId,
 
         method:
           payments.method,
@@ -289,6 +351,9 @@ export async function insertRefundPaymentRecordWithAudit(
             parentPaymentId:
               input.parentPaymentId,
 
+            processedByUserId:
+              input.processedByUserId,
+
             method:
               input.method,
 
@@ -325,6 +390,9 @@ export async function insertRefundPaymentRecordWithAudit(
 
             parentPaymentId:
               payments.parentPaymentId,
+
+            processedByUserId:
+              payments.processedByUserId,
 
             method:
               payments.method,

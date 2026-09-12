@@ -3,10 +3,79 @@ import type { DashboardRole, DashboardSummary } from '#shared/types/dashboard'
 
 const props = defineProps<{ role: DashboardRole }>()
 const days = ref('7')
+
+const manualRefreshing =
+  ref(false)
+
+const DASHBOARD_REFRESH_INTERVAL_MS =
+  8000
+
+let dashboardRefreshTimer:
+  number | null =
+    null
 const { data, status, error, refresh } = await useFetch<DashboardSummary>(() => `/api/dashboard/${props.role}`, {
   query: { days },
   key: `dashboard-${props.role}`,
 })
+
+async function autoRefreshDashboard() {
+  if (
+    props.role !== 'manager'
+    || document.visibilityState
+      !== 'visible'
+    || status.value === 'pending'
+  ) {
+    return
+  }
+
+  await refresh()
+}
+
+async function manualRefreshDashboard() {
+  if (manualRefreshing.value) {
+    return
+  }
+
+  manualRefreshing.value =
+    true
+
+  try {
+    await refresh()
+  }
+  finally {
+    manualRefreshing.value =
+      false
+  }
+}
+
+onMounted(() => {
+  if (props.role !== 'manager') {
+    return
+  }
+
+  dashboardRefreshTimer =
+    window.setInterval(
+      () => {
+        void autoRefreshDashboard()
+      },
+      DASHBOARD_REFRESH_INTERVAL_MS,
+    )
+})
+
+onBeforeUnmount(() => {
+  if (
+    dashboardRefreshTimer
+      !== null
+  ) {
+    window.clearInterval(
+      dashboardRefreshTimer,
+    )
+
+    dashboardRefreshTimer =
+      null
+  }
+})
+
 const currency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 })
 const count = new Intl.NumberFormat('en-PH')
 const colors = ['#603821', '#b98b62', '#d4b896', '#5c7861', '#947268', '#794a30', '#eadfce']
@@ -42,15 +111,141 @@ function dateLabel(value: string) {
             <option value="30">Last 30 days</option>
           </select>
         </label>
-        <button type="button" class="rounded-xl border border-brew-300 bg-white px-4 py-2 text-sm font-semibold text-brew-800 disabled:opacity-50" :disabled="status === 'pending'" @click="refresh()">Refresh</button>
+       <button
+          type="button"
+          class="
+            rounded-xl
+            border
+            border-brew-300
+            bg-white
+            px-4
+            py-2
+            text-sm
+            font-semibold
+            text-brew-800
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+          :disabled="manualRefreshing"
+          @click="manualRefreshDashboard"
+        >
+          {{
+            manualRefreshing
+              ? 'Refreshing...'
+              : 'Refresh'
+          }}
+        </button>
       </div>
     </div>
 
-    <div v-if="status === 'pending'" role="status" class="rounded-3xl border border-brew-200 bg-white p-6 text-sm text-brew-600">Brewing your latest statistics…</div>
-    <div v-else-if="error" role="alert" class="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
-      Statistics could not be loaded. Your workspace links are still available.
-      <button type="button" class="mt-3 block rounded-xl border border-red-200 px-4 py-2 font-semibold" @click="refresh()">Try again</button>
+    <div
+      v-if="
+        status === 'pending'
+        && !data
+      "
+      role="status"
+      aria-label="Loading dashboard statistics"
+      class="space-y-5"
+    >
+      <div
+        class="
+          grid
+          grid-cols-1
+          gap-4
+          sm:grid-cols-2
+          xl:grid-cols-4
+        "
+      >
+        <div
+          v-for="item in 4"
+          :key="item"
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-5
+            shadow-sm
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-4 w-28" />
+          <AppSkeleton class="mt-4 h-8 w-32" />
+          <AppSkeleton class="mt-3 h-3 w-40" />
+        </div>
+      </div>
+
+      <div
+        class="
+          grid
+          grid-cols-1
+          gap-5
+          xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]
+        "
+      >
+        <div
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4
+            shadow-sm
+            sm:p-6
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-5 w-40" />
+          <AppSkeleton class="mt-3 h-3 w-52" />
+          <AppSkeleton class="mt-6 h-52 w-full" />
+        </div>
+
+        <div
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4
+            shadow-sm
+            sm:p-6
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-5 w-36" />
+          <AppSkeleton class="mx-auto mt-6 size-44 rounded-full" />
+          <AppSkeleton class="mx-auto mt-5 h-3 w-32" />
+        </div>
+      </div>
     </div>
+    <AppStatePanel
+        v-else-if="error"
+        variant="error"
+        title="Unable to load dashboard statistics"
+        message="
+          BrewHub could not load the latest
+          dashboard statistics. Your workspace
+          links are still available.
+        "
+      >
+        <button
+          type="button"
+          class="
+            rounded-xl
+            bg-red-700
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-red-800
+          "
+          @click="refresh()"
+        >
+          Try Again
+        </button>
+      </AppStatePanel>
     <template v-else-if="data">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article v-for="metric in data.metrics" :key="metric.label" class="min-w-0 rounded-3xl border border-brew-200 bg-white p-5 shadow-sm">
@@ -63,7 +258,20 @@ function dateLabel(value: string) {
         <figure class="min-w-0 rounded-3xl border border-brew-200 bg-white p-4 shadow-sm sm:p-6">
           <figcaption class="font-semibold text-brew-950">{{ data.trend.title }}</figcaption>
           <p class="mt-1 text-xs text-brew-500">Daily counts · each bar starts at zero</p>
-          <p v-if="!data.trend.points.some(point => point.value > 0)" class="mt-6 rounded-xl bg-brew-50 p-4 text-sm text-brew-600">No activity in this period yet.</p>
+          <AppStatePanel
+            v-if="
+              !data.trend.points.some(
+                point => point.value > 0,
+              )
+            "
+            class="mt-6"
+            variant="empty"
+            title="No activity yet"
+            message="
+              No dashboard activity has been
+              recorded for this period.
+            "
+          />
           <div v-else class="mt-6 overflow-x-auto pb-2" tabindex="0" role="region" aria-label="Daily activity chart, scroll horizontally for more dates">
             <div class="flex h-52 items-end gap-2" :style="{ minWidth: `${data.trend.points.length * 40}px` }">
               <div v-for="point in data.trend.points" :key="point.label" class="flex h-full min-w-8 flex-1 flex-col items-center justify-end gap-2">
@@ -87,7 +295,16 @@ function dateLabel(value: string) {
           <div class="relative mx-auto my-6 flex size-44 items-center justify-center rounded-full" :style="{ background: gradient }" aria-hidden="true">
             <div class="flex size-32 flex-col items-center justify-center rounded-full bg-white"><span class="text-3xl font-semibold text-brew-950">{{ count.format(total) }}</span><span class="text-xs text-brew-500">Total</span></div>
           </div>
-          <p v-if="!total" class="text-center text-sm text-brew-600">No data to display yet.</p>
+          <AppStatePanel
+            v-if="!total"
+            class="mt-5"
+            variant="empty"
+            title="No breakdown data yet"
+            message="
+              No dashboard breakdown data has
+              been recorded for this period.
+            "
+          />
           <ul v-else class="space-y-3 text-sm">
             <li v-for="(point, index) in data.breakdown.points" :key="point.label" class="flex items-start justify-between gap-3">
               <span class="flex min-w-0 items-center gap-2 capitalize text-brew-700"><span class="size-3 shrink-0 rounded-full" :style="{ background: colors[index % colors.length] }" aria-hidden="true" />{{ point.label }}</span>

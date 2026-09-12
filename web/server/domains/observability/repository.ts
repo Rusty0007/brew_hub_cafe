@@ -226,6 +226,112 @@ export async function findRecentRequestLogs(
   return result.rows as unknown as RequestLogDbRow[]
 }
 
+interface TelemetryEventDbRow {
+  id:
+    | string
+    | number
+
+  eventName: string
+
+  requestId:
+    | string
+    | null
+
+  traceId:
+    | string
+    | null
+
+  userId:
+    | string
+    | number
+    | null
+
+  branchId:
+    | string
+    | number
+    | null
+
+  orderId:
+    | string
+    | number
+    | null
+
+  source:
+    | string
+    | null
+
+  result:
+    | string
+    | null
+
+  metadata:
+    Record<string, unknown>
+
+  createdAt:
+    | Date
+    | string
+}
+
+export async function findRecentTelemetryEvents(
+  limit = 200,
+) {
+  const db =
+    useDb()
+
+  const safeLimit =
+    Number.isFinite(limit)
+      ? Math.min(
+          Math.max(
+            Math.trunc(limit),
+            1,
+          ),
+          500,
+        )
+      : 200
+
+  const result =
+    await db.execute(
+      sql`
+        SELECT
+          id,
+
+          event_name
+            AS "eventName",
+
+          request_id::text
+            AS "requestId",
+
+          trace_id::text
+            AS "traceId",
+
+          user_id
+            AS "userId",
+
+          branch_id
+            AS "branchId",
+
+          order_id
+            AS "orderId",
+
+          source,
+          result,
+          metadata,
+
+          created_at
+            AS "createdAt"
+
+        FROM brewhub.telemetry_events
+
+        ORDER BY created_at DESC
+
+        LIMIT ${safeLimit}
+      `,
+    )
+
+  return result.rows as unknown as
+  TelemetryEventDbRow[]
+}
+
 export async function countRequestLogs() {
   const db =
     useDb()

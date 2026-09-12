@@ -49,6 +49,12 @@ export const recordPaymentResultSchema =
       .int()
       .positive(),
 
+    processedByUserId: z
+      .number()
+      .int()
+      .positive()
+      .nullable(),
+
     method: z
       .string()
       .trim()
@@ -250,6 +256,9 @@ export async function recordPaymentResult(
         parentPaymentId:
           null,
 
+        processedByUserId:
+          data.processedByUserId,
+
         method:
           data.method,
 
@@ -349,6 +358,61 @@ interface RefundOrderPaymentAuditContext {
   branchId: number | null
   reason: string
   traceId?: string | null
+}
+
+export interface VerifiedCustomerPaymentResult {
+  method: 'TEST'
+  provider: 'BREWHUB_TEST'
+  providerReference: string
+  status: 'SUCCEEDED'
+}
+
+export function verifyDevelopmentCustomerPayment(
+  orderId: number,
+): VerifiedCustomerPaymentResult {
+  if (
+    process.env.NODE_ENV
+    === 'production'
+  ) {
+    throw createError({
+      statusCode: 500,
+      statusMessage:
+        'Development payment verifier is unavailable',
+    })
+  }
+
+  if (
+    !Number.isInteger(orderId)
+    || orderId <= 0
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        'Invalid order ID for payment verification',
+    })
+  }
+
+  /*
+   * Development-only trusted payment
+   * verification boundary.
+   *
+   * A future real provider integration
+   * will replace this function with
+   * provider/server verification.
+   */
+  return {
+    method:
+      'TEST',
+
+    provider:
+      'BREWHUB_TEST',
+
+    providerReference:
+      `TEST-ORDER-${orderId}`,
+
+    status:
+      'SUCCEEDED',
+  }
 }
 
 export async function refundOrderPayment(
@@ -511,7 +575,10 @@ export async function refundOrderPayment(
     'REFUND' as const,
 
   parentPaymentId:
-    originalPayment.id,
+  originalPayment.id,
+
+  processedByUserId:
+    auditContext.actorUserId,
 
   method:
     originalPayment.method,

@@ -17,7 +17,6 @@ const {
 const form = reactive({
   firstName: '',
   lastName: '',
-  username: '',
   email: '',
   phone: '',
   password: '',
@@ -89,12 +88,20 @@ async function register() {
         method: 'POST',
 
         body: {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          username: form.username,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
+          firstName:
+            form.firstName,
+
+          lastName:
+            form.lastName,
+
+          email:
+            form.email,
+
+          phone:
+            form.phone,
+
+          password:
+            form.password,
         },
       },
     )
@@ -296,33 +303,6 @@ async function register() {
                 >
               </label>
             </div>
-
-            <!-- USERNAME -->
-            <label class="mt-5 block">
-              <span
-                class="text-sm font-medium text-brew-900"
-              >
-                Username
-              </span>
-
-              <input
-                v-model.trim="form.username"
-                type="text"
-                autocomplete="username"
-                required
-                minlength="4"
-                maxlength="80"
-                class="mt-2 w-full rounded-xl border border-brew-200 bg-white px-4 py-3 outline-none transition focus:border-brew-500"
-                placeholder="juandelacruz"
-              >
-
-              <p
-                class="mt-2 text-xs text-brew-500"
-              >
-                Letters, numbers, dots,
-                underscores, and hyphens only.
-              </p>
-            </label>
 
             <!-- EMAIL -->
             <label class="mt-5 block">

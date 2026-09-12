@@ -3,6 +3,7 @@ import {
 } from '#server/domains/customer/service'
 
 import {
+  getPaymentsByOrder,
   recordPaymentResult,
 } from '#server/domains/payment/service'
 
@@ -30,6 +31,7 @@ export interface CompleteCustomerCheckoutInput {
   method: string
   provider: string
   providerReference: string
+  status: 'SUCCEEDED'
 }
 
 export interface CompletePosCheckoutInput {
@@ -107,6 +109,9 @@ export async function simulatePosPaymentTimeout(
     await recordPaymentResult({
       orderId:
         order.id,
+
+      processedByUserId:
+        null,
 
       method:
         'SIMULATED_PROVIDER',
@@ -292,6 +297,9 @@ export async function simulateCustomerPaymentTimeout(
     await recordPaymentResult({
       orderId:
         order.id,
+
+      processedByUserId:
+        null,
 
       method:
         'TEST',
@@ -494,6 +502,9 @@ export async function completeCustomerCheckout(
       orderId:
         order.id,
 
+      processedByUserId:
+        null,
+
       method:
         input.method,
 
@@ -507,7 +518,7 @@ export async function completeCustomerCheckout(
         totalAmount,
 
       status:
-        'SUCCEEDED',
+        input.status,
 
       failureCode:
         null,
@@ -726,6 +737,33 @@ export async function completePosCheckout(
     })
   }
 
+    /*
+   * A previous payment attempt may have
+   * timed out without a final provider
+   * result.
+   *
+   * Do not accept another payment while
+   * that payment remains UNKNOWN.
+   */
+  const payments =
+    await getPaymentsByOrder(
+      order.id,
+    )
+
+  const hasUnknownPayment =
+    payments.some(
+      payment =>
+        payment.status === 'UNKNOWN',
+    )
+
+  if (hasUnknownPayment) {
+    throw createError({
+      statusCode: 409,
+      statusMessage:
+        'Payment is being verified. Another payment cannot be submitted yet.',
+    })
+  }
+
   const totalAmount =
     Number(
       order.totalAmount ?? 0,
@@ -797,6 +835,9 @@ export async function completePosCheckout(
         await recordPaymentResult({
           orderId:
             order.id,
+
+          processedByUserId:
+            userId,
 
           method:
             input.method,

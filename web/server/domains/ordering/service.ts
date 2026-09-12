@@ -5,10 +5,15 @@ import {
 import { z } from 'zod'
 
 import {
+  resolveManagerForCashier,
+} from '#server/domains/staff-duty/service'
+
+import {
   getOrderableProducts,
 } from '#server/domains/catalog/service'
 
 import {
+  getActiveCustomerById,
   getActiveCustomerByUserId,
 } from '#server/domains/customer/service'
 
@@ -53,6 +58,8 @@ export const createCustomerOrderSchema =
     orderType: z.enum([
       'DINE_IN',
       'TAKEOUT',
+      'PICKUP',
+      'DELIVERY',
     ]),
 
     items: z
@@ -82,6 +89,16 @@ export const createCustomerOrderSchema =
         'Order contains too many items.',
       ),
 })
+
+export const createPosOrderSchema =
+  createCustomerOrderSchema.extend({
+    customerId: z
+      .number()
+      .int()
+      .positive()
+      .nullable()
+      .optional(),
+  })
 
 export const cancelCustomerOrderSchema =
   z.object({
@@ -119,7 +136,9 @@ export type CreateCustomerOrderInput =
   >
 
 export type CreatePosOrderInput =
-  CreateCustomerOrderInput
+  z.infer<
+    typeof createPosOrderSchema
+  >
 
 function generateOrderNo() {
   const timestamp =
@@ -302,6 +321,12 @@ export async function createCustomerOrder(
       createdByUserId:
         userId,
 
+      cashierUserId:
+        null,
+
+      managerUserId:
+        null,
+
       source:
         'CUSTOMER',
 
@@ -319,6 +344,7 @@ export async function createCustomerOrder(
 export async function createPosOrder(
   userId: number,
   input: CreatePosOrderInput,
+  cashierUserId: number | null,
 ) {
   /*
    * 1. Resolve BrewHub's active
@@ -336,6 +362,42 @@ export async function createPosOrder(
         'BrewHub branch is unavailable',
     })
   }
+
+  /*
+ * Resolve an optional registered
+ * BrewHub customer.
+ *
+ * Null / undefined means this is
+ * an anonymous walk-in order.
+ */
+  const customer =
+    input.customerId == null
+      ? null
+      : await getActiveCustomerById(
+          input.customerId,
+        )
+
+  /*
+ * Resolve the Manager who is currently
+ * responsible for this Cashier.
+ *
+ * The returned Manager has already been
+ * validated against the active duty
+ * records for this same branch.
+ */
+const managerAssignment =
+  cashierUserId == null
+    ? null
+    : await resolveManagerForCashier({
+        branchId:
+          branch.id,
+
+        cashierUserId,
+      })
+
+const managerUserId =
+  managerAssignment?.managerUserId
+  ?? null
 
   /*
    * 2. Consolidate duplicate
@@ -477,10 +539,14 @@ export async function createPosOrder(
         branch.id,
 
       customerId:
-        null,
+        customer?.id ?? null,
 
       createdByUserId:
         userId,
+
+      cashierUserId,
+
+      managerUserId,
 
       source:
         'POS',
@@ -1613,6 +1679,29 @@ export async function cancelCustomerOrder(
         'Order cannot be cancelled',
     })
   }
+
+    if (
+    order.status === 'PENDING_PAYMENT'
+  ) {
+    const payments =
+      await getPaymentsByOrder(
+        order.id,
+      )
+
+  const hasUnknownPayment =
+    payments.some(
+      payment =>
+        payment.status === 'UNKNOWN',
+    )
+
+  if (hasUnknownPayment) {
+    throw createError({
+      statusCode: 409,
+      statusMessage:
+        'Payment is being verified. This order cannot be cancelled yet.',
+    })
+  }
+}
 
   const trimmedReason =
     reason.trim()

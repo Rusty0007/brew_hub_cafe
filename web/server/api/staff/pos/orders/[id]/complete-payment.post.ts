@@ -250,6 +250,7 @@ export default defineEventHandler(
         'Order is not a POS order',
         'POS order is not ready for payment',
         'POS order total is invalid',
+        'Payment is being verified. Another payment cannot be submitted yet.',
       ].includes(
         message,
       )

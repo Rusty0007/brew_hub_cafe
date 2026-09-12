@@ -1,4 +1,5 @@
 import {
+  and,
   eq,
   sql,
 } from 'drizzle-orm'
@@ -35,6 +36,49 @@ export async function findCustomerByUserId(
   return rows[0] ?? null
 }
 
+export async function findCustomerById(
+  customerId: number,
+) {
+  const db = useDb()
+
+  const rows = await db
+    .select({
+      id:
+        customers.id,
+
+      userId:
+        customers.userId,
+
+      customerNo:
+        customers.customerNo,
+
+      firstName:
+        customers.firstName,
+
+      lastName:
+        customers.lastName,
+
+      email:
+        customers.email,
+
+      phone:
+        customers.phone,
+
+      isActive:
+        customers.isActive,
+    })
+    .from(customers)
+    .where(
+      eq(
+        customers.id,
+        customerId,
+      ),
+    )
+    .limit(1)
+
+  return rows[0] ?? null
+}
+
 export async function findCustomerByEmail(
   email: string,
 ) {
@@ -55,6 +99,103 @@ export async function findCustomerByEmail(
     .limit(1)
 
   return rows[0] ?? null
+}
+
+export async function searchActiveCustomers(
+  search: string,
+) {
+  const db = useDb()
+
+  const normalizedSearch =
+    search.trim().toLowerCase()
+
+  if (!normalizedSearch) {
+    return []
+  }
+
+  const pattern =
+    `%${normalizedSearch}%`
+
+  return db
+    .select({
+      id:
+        customers.id,
+
+      customerNo:
+        customers.customerNo,
+
+      firstName:
+        customers.firstName,
+
+      lastName:
+        customers.lastName,
+
+      email:
+        customers.email,
+
+      phone:
+        customers.phone,
+
+      isActive:
+        customers.isActive,
+    })
+    .from(customers)
+    .where(
+      and(
+        eq(
+          customers.isActive,
+          true,
+        ),
+
+        sql`
+          (
+            lower(
+              coalesce(
+                ${customers.customerNo},
+                ''
+              )
+            ) LIKE ${pattern}
+
+            OR lower(
+              coalesce(
+                ${customers.email},
+                ''
+              )
+            ) LIKE ${pattern}
+
+            OR lower(
+              coalesce(
+                ${customers.phone},
+                ''
+              )
+            ) LIKE ${pattern}
+
+            OR lower(
+              coalesce(
+                ${customers.firstName},
+                ''
+              )
+            ) LIKE ${pattern}
+
+            OR lower(
+              coalesce(
+                ${customers.lastName},
+                ''
+              )
+            ) LIKE ${pattern}
+
+            OR lower(
+              concat_ws(
+                ' ',
+                ${customers.firstName},
+                ${customers.lastName}
+              )
+            ) LIKE ${pattern}
+          )
+        `,
+      ),
+    )
+    .limit(20)
 }
 
 interface CreateCustomerAccountInput {
@@ -78,17 +219,45 @@ export async function insertCustomerAccount(
         await tx
           .insert(users)
           .values({
-            username: input.username,
-            passwordHash: input.passwordHash,
-            displayName: input.displayName,
-            email: input.email,
-            isActive: true,
+            username:
+              input.username,
+
+            passwordHash:
+              input.passwordHash,
+
+            displayName:
+              input.displayName,
+
+            firstName:
+              input.firstName,
+
+            lastName:
+              input.lastName,
+
+            email:
+              input.email,
+
+            isActive:
+              true,
           })
           .returning({
-            id: users.id,
-            username: users.username,
-            displayName: users.displayName,
-            email: users.email,
+            id:
+              users.id,
+
+            username:
+              users.username,
+
+            displayName:
+              users.displayName,
+
+            firstName:
+              users.firstName,
+
+            lastName:
+              users.lastName,
+
+            email:
+              users.email,
           })
 
       const user = insertedUsers[0]

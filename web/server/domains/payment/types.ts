@@ -23,6 +23,9 @@ export interface CreatePaymentRecordInput {
     PaymentTransactionType
 
   parentPaymentId:
+  number | null
+
+  processedByUserId:
     number | null
 
   method: string

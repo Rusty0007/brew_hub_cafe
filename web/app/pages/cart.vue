@@ -15,8 +15,14 @@ const {
   loggedIn,
 } = useUserSession()
 
+type CustomerOrderType =
+  | 'DINE_IN'
+  | 'TAKEOUT'
+  | 'PICKUP'
+  | 'DELIVERY'
+
 const orderType =
-  ref<'DINE_IN' | 'TAKEOUT'>(
+  ref<CustomerOrderType>(
     'TAKEOUT',
   )
 
@@ -69,10 +75,28 @@ async function placeOrder() {
     return
   }
 
-  const orderTypeLabel =
-  orderType.value === 'DINE_IN'
-    ? 'Dine in'
-    : 'Takeout'
+const orderTypeLabels:
+  Record<
+    CustomerOrderType,
+    string
+  > = {
+    DINE_IN:
+      'Dine in',
+
+    TAKEOUT:
+      'Takeout',
+
+    PICKUP:
+      'Pickup',
+
+    DELIVERY:
+      'Delivery',
+  }
+
+const orderTypeLabel =
+  orderTypeLabels[
+    orderType.value
+  ]
 
   const confirmed =
     await showConfirm({
@@ -571,10 +595,33 @@ async function placeOrder() {
           <div
             class="
               mt-3
-              grid grid-cols-2
+              grid
+              grid-cols-2
               gap-2
             "
           >
+            <button
+              type="button"
+              class="
+                rounded-2xl
+                border
+                px-3 py-3
+                text-sm
+                font-semibold
+                transition
+              "
+              :class="
+                orderType === 'DINE_IN'
+                  ? 'border-brew-900 bg-brew-900 text-white'
+                  : 'border-brew-200 text-brew-700 hover:bg-brew-50'
+              "
+              @click="
+                orderType = 'DINE_IN'
+              "
+            >
+              Dine in
+            </button>
+
             <button
               type="button"
               class="
@@ -608,15 +655,37 @@ async function placeOrder() {
                 transition
               "
               :class="
-                orderType === 'DINE_IN'
+                orderType === 'PICKUP'
                   ? 'border-brew-900 bg-brew-900 text-white'
                   : 'border-brew-200 text-brew-700 hover:bg-brew-50'
               "
               @click="
-                orderType = 'DINE_IN'
+                orderType = 'PICKUP'
               "
             >
-              Dine in
+              Pickup
+            </button>
+
+            <button
+              type="button"
+              class="
+                rounded-2xl
+                border
+                px-3 py-3
+                text-sm
+                font-semibold
+                transition
+              "
+              :class="
+                orderType === 'DELIVERY'
+                  ? 'border-brew-900 bg-brew-900 text-white'
+                  : 'border-brew-200 text-brew-700 hover:bg-brew-50'
+              "
+              @click="
+                orderType = 'DELIVERY'
+              "
+            >
+              Delivery
             </button>
           </div>
         </fieldset>

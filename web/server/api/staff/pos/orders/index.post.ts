@@ -3,7 +3,7 @@ import {
 } from '#server/domains/authentication/authorization'
 
 import {
-  createCustomerOrderSchema,
+  createPosOrderSchema,
   createPosOrder,
 } from '#server/domains/ordering/service'
 
@@ -38,6 +38,21 @@ export default defineEventHandler(
           'MANAGER',
         ],
       )
+
+    /*
+     * Only users who actually have the
+     * CASHIER role are stored as the
+     * cashier responsible for the order.
+     *
+     * A Manager may use the POS, but must
+     * not be misidentified as a Cashier.
+     */
+    const cashierUserId =
+      staff.roles.includes(
+        'CASHIER',
+      )
+        ? staff.id
+        : null
 
     const checkoutContext =
       getBrewHubRequestContext(
@@ -106,7 +121,7 @@ export default defineEventHandler(
       await readBody(event)
 
     const parsed =
-      createCustomerOrderSchema.safeParse(
+      createPosOrderSchema.safeParse(
         body,
       )
 
@@ -130,10 +145,11 @@ export default defineEventHandler(
      * from Catalog.
      */
     const order =
-      await createPosOrder(
-        staff.id,
-        parsed.data,
-      )
+    await createPosOrder(
+      staff.id,
+      parsed.data,
+      cashierUserId,
+    )
 
     const orderCreateDurationMs =
       orderCreatePerformanceTimer
