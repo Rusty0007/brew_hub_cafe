@@ -1497,7 +1497,12 @@ function startNewPosOrder() {
       </p>
     </section>
       <!-- PRODUCT CATALOG -->
-      <div>
+      <div
+        class="
+          order-3
+          lg:order-2
+        "
+      >
         <div
           class="
             rounded-3xl
@@ -1860,10 +1865,11 @@ function startNewPosOrder() {
         <div
           v-else
           class="
-            mt-6
+            mt-5
             grid
-            gap-4
+            gap-3
             sm:grid-cols-2
+            sm:gap-4
             xl:grid-cols-3
           "
         >
@@ -1875,12 +1881,14 @@ function startNewPosOrder() {
             class="
               flex
               flex-col
-              rounded-3xl
+              rounded-2xl
               border
               border-brew-200
               bg-white
-              p-5
+              p-4
               shadow-sm
+              sm:rounded-3xl
+              sm:p-5
             "
           >
             <div
@@ -1977,19 +1985,19 @@ function startNewPosOrder() {
                   Boolean(createdOrder)
                 "
                 class="
-                  mt-4
-                  w-full
-                  rounded-xl
-                  px-4
-                  py-2.5
-                  text-sm
-                  font-semibold
-                  text-white
-                  transition
-                  hover:opacity-90
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                mt-3
+                w-full
+                rounded-xl
+                px-4
+                py-2.5
+                text-sm
+                font-semibold
+                text-white
+                transition
+                hover:opacity-90
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+              "
                 style="
                   background-color:
                     var(--color-brew-800);
@@ -2036,7 +2044,11 @@ function startNewPosOrder() {
 
       <!-- POS ORDER -->
       <aside
-        class="lg:self-start"
+        class="
+          order-2
+          lg:order-3
+          lg:self-start
+        "
       >
         <div
           class="
@@ -2148,7 +2160,6 @@ function startNewPosOrder() {
             </label>
 
           <div
-            <div
               v-if="
                 posLines.length === 0
                 && !createdOrder
@@ -2202,10 +2213,13 @@ function startNewPosOrder() {
                 line.productId
               "
               class="
-                border-b
+                rounded-2xl
+                border
                 border-brew-100
-                pb-4
-                last:border-b-0
+                bg-brew-50/40
+                p-3
+                last:border-brew-100
+                sm:p-4
               "
             >
               <div
@@ -2262,8 +2276,11 @@ function startNewPosOrder() {
 
               <div
                 class="
-                  mt-4
-                  flex flex-wrap items-center justify-between gap-4
+                  mt-3
+                  flex
+                  items-center
+                  justify-between
+                  gap-3
                 "
               >
                 <div
@@ -2338,7 +2355,9 @@ function startNewPosOrder() {
 
                 <p
                   class="
-                    font-semibold
+                    shrink-0
+                    text-base
+                    font-bold
                     text-brew-950
                   "
                 >
@@ -2355,15 +2374,20 @@ function startNewPosOrder() {
 
           <div
             class="
-              mt-6
-              border-t
+              mt-5
+              rounded-2xl
+              border
               border-brew-200
-              pt-5
+              bg-brew-50
+              p-4
             "
           >
-            <div
+                        <div
               class="
-                flex flex-wrap items-center justify-between gap-4
+                flex
+                items-center
+                justify-between
+                gap-4
               "
             >
               <span
@@ -2392,8 +2416,11 @@ function startNewPosOrder() {
 
             <div
               class="
-                mt-3
-                flex flex-wrap items-center justify-between gap-4
+                mt-2
+                flex
+                items-end
+                justify-between
+                gap-4
               "
             >
               <span
@@ -2412,8 +2439,9 @@ function startNewPosOrder() {
 
               <span
                 class="
+                  shrink-0
                   text-2xl
-                  font-semibold
+                  font-bold
                   text-brew-950
                 "
               >
@@ -2638,7 +2666,7 @@ function startNewPosOrder() {
                 w-full
                 rounded-xl
                 px-4
-                py-2.5
+                py-3
                 text-sm
                 font-semibold
                 text-white
@@ -2760,19 +2788,19 @@ function startNewPosOrder() {
                 || simulatingPaymentTimeout
               "
               class="
-                mt-4
-                w-full
-                rounded-xl
-                px-4
-                py-2.5
-                text-sm
-                font-semibold
-                text-white
-                transition
-                hover:opacity-90
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-              "
+              mt-3
+              w-full
+              rounded-xl
+              px-4
+              py-2.5
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:opacity-90
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
               style="
                 background-color:
                   var(--color-brew-800);
@@ -2826,7 +2854,6 @@ function startNewPosOrder() {
             </div>
 
           <button
-            <button
               v-if="
                 createdOrder.status
                 === 'COMPLETED'
