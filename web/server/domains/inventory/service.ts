@@ -4,10 +4,11 @@ import {
   adjustStock as adjustStockRecord,
   countStockMovements,
   findActiveReservationsByOrder,
+  findExpiredActiveReservationOrderIds,
   findInventoryByBranch,
   findInventoryByProduct,
-  findStockMovements,
   findReservationsByOrder,
+  findStockMovements,
   receiveStock as receiveStockRecord,
   releaseReservation as releaseReservationRecord,
   reserveStock as reserveStockRecord,
@@ -20,6 +21,26 @@ import {
 import {
   logInfo,
 } from '#server/utils/logger'
+
+export async function getExpiredActiveReservationOrderIds(
+  limit = 100,
+) {
+  if (
+    !Number.isInteger(limit)
+    || limit <= 0
+    || limit > 1000
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        'Invalid expired reservation lookup limit',
+    })
+  }
+
+  return await findExpiredActiveReservationOrderIds(
+    limit,
+  )
+}
 
 /*
  * PostgreSQL inventory quantities use

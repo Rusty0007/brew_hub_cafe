@@ -25,6 +25,7 @@ const {
   data,
   pending,
   error,
+  refresh,
 } = await useFetch<{
   products: ManagedProduct[]
 }>(
@@ -87,13 +88,42 @@ const inactiveCount = computed(
       </div>
 
       <div class="flex flex-wrap gap-3">
+        <button
+          type="button"
+          class="
+            inline-flex
+            items-center
+            justify-center
+            rounded-xl
+            border
+            border-brew-200
+            bg-white
+            px-5
+            py-3
+            text-sm
+            font-semibold
+            text-brew-700
+            transition
+            hover:bg-brew-50
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+          :disabled="pending"
+          @click="refresh()"
+        >
+          {{
+            pending
+              ? 'Refreshing...'
+              : 'Refresh'
+          }}
+        </button>
         <NuxtLink
           to="/staff/catalog/categories"
           class="inline-flex items-center justify-center rounded-xl border border-brew-200 px-5 py-3 text-sm font-semibold text-brew-700 transition hover:bg-brew-50"
         >
           Manage categories
         </NuxtLink>
-      
+
         <NuxtLink
           to="/staff/catalog/new"
           class="inline-flex items-center justify-center rounded-xl bg-brew-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brew-900"
@@ -106,45 +136,141 @@ const inactiveCount = computed(
     </div>
 
     <div
-      class="mt-8 grid gap-4 sm:grid-cols-3"
+      class="
+        mt-8
+        grid
+        gap-2
+        sm:gap-4
+      "
+      style="
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      "
     >
       <div
-        class="rounded-2xl border border-brew-200 bg-white p-5"
+        class="
+          min-w-0
+          rounded-2xl
+          border
+          border-brew-200
+          bg-white
+          p-3
+          sm:p-5
+        "
       >
-        <p class="text-sm text-brew-500">
+        <p
+          class="
+            text-[11px]
+            font-medium
+            leading-4
+            text-brew-500
+            sm:text-sm
+          "
+        >
           Total products
         </p>
 
+        <AppSkeleton
+          v-if="pending && products.length === 0"
+          class="mt-3 h-9 w-16"
+        />
+
         <p
-          class="mt-2 text-3xl font-semibold text-brew-950"
+          v-else
+          class="
+            mt-1
+            text-2xl
+            font-semibold
+            text-brew-950
+            sm:mt-2
+            sm:text-3xl
+          "
         >
           {{ products.length }}
         </p>
       </div>
 
       <div
-        class="rounded-2xl border border-brew-200 bg-white p-5"
+        class="
+          min-w-0
+          rounded-2xl
+          border
+          border-brew-200
+          bg-white
+          p-3
+          sm:p-5
+        "
       >
-        <p class="text-sm text-brew-500">
+        <p
+          class="
+            text-[11px]
+            font-medium
+            leading-4
+            text-brew-500
+            sm:text-sm
+          "
+        >
           Active
         </p>
 
+        <AppSkeleton
+          v-if="pending && products.length === 0"
+          class="mt-3 h-9 w-16"
+        />
+
         <p
-          class="mt-2 text-3xl font-semibold text-brew-950"
+          v-else
+          class="
+            mt-1
+            text-2xl
+            font-semibold
+            text-brew-950
+            sm:mt-2
+            sm:text-3xl
+          "
         >
           {{ activeCount }}
         </p>
       </div>
 
       <div
-        class="rounded-2xl border border-brew-200 bg-white p-5"
+        class="
+          min-w-0
+          rounded-2xl
+          border
+          border-brew-200
+          bg-white
+          p-3
+          sm:p-5
+        "
       >
-        <p class="text-sm text-brew-500">
+        <p
+          class="
+            text-[11px]
+            font-medium
+            leading-4
+            text-brew-500
+            sm:text-sm
+          "
+        >
           Inactive
         </p>
 
+        <AppSkeleton
+          v-if="pending && products.length === 0"
+          class="mt-3 h-9 w-16"
+        />
+
         <p
-          class="mt-2 text-3xl font-semibold text-brew-950"
+          v-else
+          class="
+            mt-1
+            text-2xl
+            font-semibold
+            text-brew-950
+            sm:mt-2
+            sm:text-3xl
+          "
         >
           {{ inactiveCount }}
         </p>
@@ -152,139 +278,402 @@ const inactiveCount = computed(
     </div>
 
     <div
-      v-if="pending"
-      class="mt-10 text-brew-500"
+      v-if="
+        pending
+        && products.length === 0
+      "
+      role="status"
+      aria-label="Loading catalog products"
+      class="
+        mt-8
+        rounded-3xl
+        border
+        border-brew-200
+        bg-white
+        p-4 sm:p-6
+      "
     >
-      Loading products...
+      <AppTableSkeleton
+        :rows="8"
+        :columns="5"
+      />
     </div>
 
-    <div
+    <AppStatePanel
       v-else-if="error"
-      class="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700"
+      class="mt-8"
+      variant="error"
+      title="Unable to load catalog"
+      message="
+        BrewHub could not load the current
+        product catalog. Try again to reload
+        the latest product data.
+      "
     >
-      Unable to load catalog.
-    </div>
+      <button
+        type="button"
+        class="
+          rounded-xl
+          bg-red-700
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-red-800
+        "
+        @click="refresh()"
+      >
+        Try Again
+      </button>
+    </AppStatePanel>
 
     <div
-      v-else
-      class="mt-8 overflow-x-auto rounded-3xl border border-brew-200 bg-white"
-     tabindex="0" role="region" aria-label="Products, scroll horizontally for more columns">
-      <table
-        class="w-full text-left"
-        style="min-width: 850px;"
+      v-else-if="products.length > 0"
+      class="
+        mt-8
+        overflow-hidden
+        rounded-3xl
+        border
+        border-brew-200
+        bg-white
+      "
+    >
+      <!-- MOBILE PRODUCT CARDS -->
+      <div
+        class="
+          divide-y
+          divide-brew-100
+          md:hidden
+        "
       >
-        <thead class="bg-brew-50">
-          <tr>
-            <th
-              class="px-6 py-4 text-sm font-semibold text-brew-900"
-            >
-              Product
-            </th>
-
-            <th
-              class="px-6 py-4 text-sm font-semibold text-brew-900"
-            >
-              Category
-            </th>
-
-            <th
-              class="px-6 py-4 text-sm font-semibold text-brew-900"
-            >
-              Price
-            </th>
-
-            <th
-              class="px-6 py-4 text-sm font-semibold text-brew-900"
-            >
-              Status
-            </th>
-
-            <th
-              class="px-6 py-4 text-sm font-semibold text-brew-900"
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody
-          class="divide-y divide-brew-100"
+        <article
+          v-for="product in products"
+          :key="product.id"
+          class="p-4"
         >
-          <tr
-            v-for="product in products"
-            :key="product.id"
+          <div
+            class="
+              flex
+              items-start
+              justify-between
+              gap-3
+            "
           >
-            <td class="px-6 py-5">
+            <div class="min-w-0">
               <p
-                class="font-semibold text-brew-950"
+                class="
+                  truncate
+                  text-base
+                  font-semibold
+                  text-brew-950
+                "
               >
                 {{ product.name }}
               </p>
 
               <p
-                class="mt-1 text-sm text-brew-500"
+                class="
+                  mt-1
+                  text-xs
+                  text-brew-500
+                "
               >
                 {{ product.sku }}
               </p>
-            </td>
+            </div>
 
-            <td
-              class="px-6 py-5 text-sm text-brew-700"
+            <span
+              class="
+                inline-flex
+                shrink-0
+                rounded-full
+                px-2.5
+                py-1
+                text-xs
+                font-semibold
+              "
+              :class="
+                product.isActive
+                  ? 'bg-green-50 text-green-700'
+                  : 'bg-red-50 text-red-700'
+              "
             >
               {{
-                product.category?.name
-                ?? 'Uncategorized'
+                product.isActive
+                  ? 'Active'
+                  : 'Inactive'
               }}
-            </td>
+            </span>
+          </div>
 
-            <td
-              class="px-6 py-5 font-medium text-brew-950"
-            >
-              ₱{{
-                product.basePrice
-                  .toFixed(2)
-              }}
-            </td>
+          <div
+            class="
+              mt-4
+              grid
+              grid-cols-2
+              gap-4
+              border-t
+              border-brew-100
+              pt-4
+            "
+          >
+            <div>
+              <p
+                class="
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-widest
+                  text-brew-400
+                "
+              >
+                Category
+              </p>
 
-            <td class="px-6 py-5">
-              <span
-                class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                :class="
-                  product.isActive
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-red-50 text-red-700'
+              <p
+                class="
+                  mt-1
+                  text-sm
+                  font-medium
+                  text-brew-800
                 "
               >
                 {{
-                  product.isActive
-                    ? 'Active'
-                    : 'Inactive'
+                  product.category?.name
+                  ?? 'Uncategorized'
                 }}
-              </span>
-            </td>
+              </p>
+            </div>
 
-            <td class="px-6 py-5">
-              <NuxtLink
-                :to="`/staff/catalog/${product.id}`"
-                class="inline-flex rounded-xl border border-brew-200 px-4 py-2 text-sm font-medium text-brew-700 transition hover:bg-brew-50"
+            <div>
+              <p
+                class="
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-widest
+                  text-brew-400
+                "
               >
-                Manage
-              </NuxtLink>
-            </td>
-          </tr>
+                Price
+              </p>
 
-          <tr
-            v-if="products.length === 0"
+              <p
+                class="
+                  mt-1
+                  text-lg
+                  font-bold
+                  text-brew-950
+                "
+              >
+                ₱{{
+                  product.basePrice
+                    .toFixed(2)
+                }}
+              </p>
+            </div>
+          </div>
+
+          <div
+            class="
+              mt-4
+              border-t
+              border-brew-100
+              pt-4
+            "
           >
-            <td
-              colspan="5"
-              class="px-6 py-12 text-center text-brew-500"
+            <NuxtLink
+              :to="`/staff/catalog/${product.id}`"
+              class="
+                inline-flex
+                w-full
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-brew-200
+                px-4
+                py-2.5
+                text-sm
+                font-semibold
+                text-brew-700
+                transition
+                hover:bg-brew-50
+              "
             >
-              No products found.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              Manage Product
+            </NuxtLink>
+          </div>
+        </article>
+      </div>
+
+      <!-- DESKTOP PRODUCTS TABLE -->
+      <div
+        class="
+          hidden
+          overflow-x-auto
+          md:block
+        "
+        tabindex="0"
+        role="region"
+        aria-label="Products, scroll horizontally for more columns"
+      >
+        <table
+          class="w-full text-left"
+          style="min-width: 850px;"
+        >
+          <thead class="bg-brew-50">
+            <tr>
+              <th
+                class="px-6 py-4 text-sm font-semibold text-brew-900"
+              >
+                Product
+              </th>
+
+              <th
+                class="px-6 py-4 text-sm font-semibold text-brew-900"
+              >
+                Category
+              </th>
+
+              <th
+                class="px-6 py-4 text-sm font-semibold text-brew-900"
+              >
+                Price
+              </th>
+
+              <th
+                class="px-6 py-4 text-sm font-semibold text-brew-900"
+              >
+                Status
+              </th>
+
+              <th
+                class="px-6 py-4 text-sm font-semibold text-brew-900"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody
+            class="divide-y divide-brew-100"
+          >
+            <tr
+              v-for="product in products"
+              :key="product.id"
+            >
+              <td class="px-6 py-5">
+                <p
+                  class="font-semibold text-brew-950"
+                >
+                  {{ product.name }}
+                </p>
+
+                <p
+                  class="mt-1 text-sm text-brew-500"
+                >
+                  {{ product.sku }}
+                </p>
+              </td>
+
+              <td
+                class="px-6 py-5 text-sm text-brew-700"
+              >
+                {{
+                  product.category?.name
+                  ?? 'Uncategorized'
+                }}
+              </td>
+
+              <td
+                class="px-6 py-5 font-medium text-brew-950"
+              >
+                ₱{{
+                  product.basePrice
+                    .toFixed(2)
+                }}
+              </td>
+
+              <td class="px-6 py-5">
+                <span
+                  class="
+                    inline-flex
+                    rounded-full
+                    px-3
+                    py-1
+                    text-xs
+                    font-semibold
+                  "
+                  :class="
+                    product.isActive
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-red-50 text-red-700'
+                  "
+                >
+                  {{
+                    product.isActive
+                      ? 'Active'
+                      : 'Inactive'
+                  }}
+                </span>
+              </td>
+
+              <td class="px-6 py-5">
+                <NuxtLink
+                  :to="`/staff/catalog/${product.id}`"
+                  class="
+                    inline-flex
+                    rounded-xl
+                    border
+                    border-brew-200
+                    px-4
+                    py-2
+                    text-sm
+                    font-medium
+                    text-brew-700
+                    transition
+                    hover:bg-brew-50
+                  "
+                >
+                  Manage
+                </NuxtLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+    <AppStatePanel
+      v-else
+      class="mt-8"
+      variant="empty"
+      title="No products yet"
+      message="
+        Add the first BrewHub product to
+        begin managing pricing, categories,
+        and product availability.
+      "
+>
+      <NuxtLink
+        to="/staff/catalog/new"
+        class="
+          inline-flex
+          rounded-xl
+          bg-brew-800
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-brew-900
+        "
+      >
+        Add Product
+      </NuxtLink>
+</AppStatePanel>
   </section>
 </template>

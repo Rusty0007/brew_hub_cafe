@@ -218,21 +218,58 @@ async function createCategory() {
 
       <div>
         <div
-          v-if="pending"
-          class="text-brew-500"
+          v-if="
+            pending
+            && categories.length === 0
+          "
+          role="status"
+          aria-label="Loading categories"
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4
+            sm:p-6
+          "
         >
-          Loading categories...
+          <AppTableSkeleton
+            :rows="6"
+            :columns="3"
+          />
         </div>
 
-        <div
+        <AppStatePanel
           v-else-if="error"
-          class="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700"
+          variant="error"
+          title="Unable to load categories"
+          message="
+            BrewHub could not load the current
+            product categories. Try again to
+            reload the latest category data.
+          "
         >
-          Unable to load categories.
-        </div>
+          <button
+            type="button"
+            class="
+              rounded-xl
+              bg-red-700
+              px-5
+              py-2.5
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-red-800
+            "
+            @click="refresh()"
+          >
+            Try Again
+          </button>
+        </AppStatePanel>
 
         <div
-          v-else
+          v-else-if="categories.length > 0"
           class="overflow-x-auto rounded-3xl border border-brew-200 bg-white"
          tabindex="0" role="region" aria-label="Product categories, scroll horizontally for more columns">
           <table class="w-full min-w-150 text-left">
@@ -309,6 +346,16 @@ async function createCategory() {
             </tbody>
           </table>
         </div>
+        <AppStatePanel
+          v-else
+          variant="empty"
+          title="No categories yet"
+          message="
+            Create the first product category
+            to begin organizing the BrewHub
+            catalog.
+          "
+        />
       </div>
     </div>
   </section>

@@ -62,10 +62,6 @@ const currentUser = computed(() => {
         {{ currentUser.displayName }}
       </h2>
 
-      <p class="mt-4 text-sm text-brew-600">
-        Username: {{ currentUser.username }}
-      </p>
-
       <p class="mt-2 text-sm text-brew-600">
         Email: {{ currentUser.email ?? '—' }}
       </p>

@@ -2,6 +2,7 @@
 definePageMeta({
   middleware: [
     'auth',
+    'manager',
   ],
 })
 
@@ -240,36 +241,140 @@ async function refreshReport() {
 
     <!-- LOADING -->
     <div
-      v-if="pending"
-      class="
-        mt-8
-        rounded-3xl
-        border
-        border-brew-200
-        bg-white
-        p-4 sm:p-10
-        text-center
-        text-brew-500
-      "
+      v-if="pending && !report"
+      class="mt-8"
+      role="status"
+      aria-label="Loading manager reports"
     >
-      Loading reports...
+      <div
+        class="
+          rounded-2xl
+          border
+          border-brew-200
+          bg-brew-50
+          px-5
+          py-4
+        "
+      >
+        <AppSkeleton class="h-5 w-40" />
+        <AppSkeleton class="mt-2 h-3 w-64" />
+      </div>
+
+      <div
+        class="
+          mt-6
+          grid
+          gap-5
+          sm:grid-cols-2
+          xl:grid-cols-4
+        "
+      >
+        <div
+          v-for="item in 6"
+          :key="item"
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4 sm:p-6
+            shadow-sm
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-3 w-24" />
+          <AppSkeleton class="mt-4 h-8 w-32" />
+          <AppSkeleton class="mt-3 h-3 w-40" />
+        </div>
+      </div>
+
+      <div
+        class="
+          mt-6
+          grid
+          gap-6
+          xl:grid-cols-3
+        "
+      >
+        <div
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4 sm:p-6
+            shadow-sm
+            xl:col-span-2
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-3 w-28" />
+          <AppSkeleton class="mt-3 h-6 w-48" />
+
+          <div class="mt-6 space-y-4">
+            <AppSkeleton
+              v-for="row in 5"
+              :key="row"
+              class="h-10 w-full"
+            />
+          </div>
+        </div>
+
+        <div
+          class="
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            p-4 sm:p-6
+            shadow-sm
+          "
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-3 w-24" />
+          <AppSkeleton class="mt-3 h-6 w-36" />
+
+          <div class="mt-6 space-y-4">
+            <AppSkeleton
+              v-for="row in 4"
+              :key="row"
+              class="h-9 w-full"
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ERROR -->
-    <div
+    <AppStatePanel
       v-else-if="error"
-      class="
-        mt-8
-        rounded-3xl
-        border
-        border-red-200
-        bg-red-50
-        p-4 sm:p-6
-        text-red-700
+      class="mt-8"
+      variant="error"
+      title="Unable to load manager reports"
+      message="
+        BrewHub could not load the manager
+        report data. Check the connection
+        and try again.
       "
     >
-      Unable to load manager reports.
-    </div>
+      <button
+        type="button"
+        class="
+          rounded-xl
+          bg-red-700
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-red-800
+        "
+        @click="refreshReport"
+      >
+        Try Again
+      </button>
+    </AppStatePanel>
 
     <template v-else-if="report">
       <!-- REPORT CONTEXT -->
@@ -355,7 +460,7 @@ async function refreshReport() {
             >
               Gross Sales
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -371,7 +476,7 @@ async function refreshReport() {
                 )
               }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -382,7 +487,7 @@ async function refreshReport() {
               Completed orders before refunds
             </p>
           </div>
-      
+
           <!-- COMPLETED ORDERS -->
           <div
             class="
@@ -405,7 +510,7 @@ async function refreshReport() {
             >
               Completed Orders
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -417,7 +522,7 @@ async function refreshReport() {
             >
               {{ report.today.completedOrders }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -428,7 +533,7 @@ async function refreshReport() {
               Orders completed today
             </p>
           </div>
-      
+
           <!-- POS SALES -->
           <div
             class="
@@ -451,7 +556,7 @@ async function refreshReport() {
             >
               POS Sales
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -467,7 +572,7 @@ async function refreshReport() {
                 )
               }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -478,7 +583,7 @@ async function refreshReport() {
               Cashier-created orders
             </p>
           </div>
-      
+
           <!-- CUSTOMER SALES -->
           <div
             class="
@@ -501,7 +606,7 @@ async function refreshReport() {
             >
               Customer Sales
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -517,7 +622,7 @@ async function refreshReport() {
                 )
               }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -528,7 +633,7 @@ async function refreshReport() {
               Customer-created orders
             </p>
           </div>
-      
+
           <!-- REFUNDS -->
           <div
             class="
@@ -551,7 +656,7 @@ async function refreshReport() {
             >
               Refunds
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -567,7 +672,7 @@ async function refreshReport() {
                 )
               }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -585,7 +690,7 @@ async function refreshReport() {
               today
             </p>
           </div>
-      
+
           <!-- NET SALES -->
           <div
             class="
@@ -608,7 +713,7 @@ async function refreshReport() {
             >
               Net Sales
             </p>
-        
+
             <p
               class="
                 mt-4
@@ -624,7 +729,7 @@ async function refreshReport() {
                 )
               }}
             </p>
-        
+
             <p
               class="
                 mt-2
@@ -636,7 +741,7 @@ async function refreshReport() {
             </p>
           </div>
 </div>
-        
+
 
       <!-- TOP PRODUCTS + PAYMENTS -->
       <div
@@ -684,18 +789,18 @@ async function refreshReport() {
             </h2>
           </div>
 
-          <p
+          <AppStatePanel
             v-if="
               report.topProducts.length === 0
             "
-            class="
-              mt-6
-              text-sm
-              text-brew-500
+            class="mt-6"
+            variant="empty"
+            title="No product sales yet"
+            message="
+              No completed product sales have
+              been recorded for today.
             "
-          >
-            No completed product sales today.
-          </p>
+          />
 
           <div
             v-else
@@ -843,19 +948,19 @@ async function refreshReport() {
             Payment Summary
           </h2>
 
-          <p
+          <AppStatePanel
             v-if="
               report.paymentSummary.length
                 === 0
             "
-            class="
-              mt-6
-              text-sm
-              text-brew-500
+            class="mt-6"
+            variant="empty"
+            title="No payments yet"
+            message="
+              No successful payments have
+              been recorded for today.
             "
-          >
-            No successful payments today.
-          </p>
+          />
 
           <div
             v-else
@@ -1005,25 +1110,19 @@ async function refreshReport() {
           </span>
         </div>
 
-        <div
+        <AppStatePanel
           v-if="
             report.lowStockProducts.length
               === 0
           "
-          class="
-            mt-6
-            rounded-2xl
-            border
-            border-green-200
-            bg-green-50
-            p-5
-            text-sm
-            text-green-700
+          class="mt-6"
+          variant="info"
+          title="Inventory levels look healthy"
+          message="
+            No products are currently at
+            or below their reorder level.
           "
-        >
-          No products are currently at
-          or below their reorder level.
-        </div>
+        />
 
         <div
           v-else

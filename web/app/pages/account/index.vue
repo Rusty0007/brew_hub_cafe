@@ -157,7 +157,7 @@ const fullName = computed(() => {
         class="mt-10"
         variant="error"
         title="Unable to load your account"
-        Xmessage="BrewHub could not retrieve your customer profile. Please try again."
+        message="BrewHub could not retrieve your customer profile. Please try again."
     />
 
     <template v-else-if="customer">

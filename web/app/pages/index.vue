@@ -55,12 +55,17 @@ const accountLabel = computed(() => {
   <div class="min-h-screen bg-brew-50 text-brew-950">
     <!-- HERO -->
     <section
-      class="relative min-h-screen overflow-hidden"
-      style="
-        background-image: url('/images/landing/Desktop-Size.png');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+      class="
+        relative
+        min-h-[78svh]
+        overflow-hidden
+        bg-[url('/images/landing/mobile-screen.png')]
+        bg-cover
+        bg-center
+        bg-no-repeat
+
+        md:min-h-screen
+        md:bg-[url('/images/landing/Desktop-Size.png')]
       "
     >
       <!--
@@ -81,7 +86,19 @@ const accountLabel = computed(() => {
         class="relative z-20 border-b border-brew-900/10"
       >
         <div
-          class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-6 lg:px-8"
+          class="
+          mx-auto
+          flex
+          max-w-7xl
+          items-center
+          justify-between
+          gap-3
+          px-4
+          py-4
+          sm:px-6
+          sm:py-6
+          lg:px-8
+        "
         >
           <!-- BRAND -->
           <NuxtLink
@@ -102,7 +119,14 @@ const accountLabel = computed(() => {
               </p>
 
               <p
-                class="text-xs uppercase tracking-[0.2em] text-brew-600"
+                class="
+                text-xs
+                font-medium
+                uppercase
+                tracking-[0.2em]
+                text-brew-900
+                lg:text-brew-600
+              "
               >
                 Coffee & comfort
               </p>
@@ -151,11 +175,11 @@ const accountLabel = computed(() => {
 
           <!-- STAFF CTA -->
             <!-- ACCOUNT ACTIONS -->
-<div
-  v-if="!loggedIn"
-  class="hidden items-center gap-3 sm:flex"
->
-  <!-- CUSTOMER REGISTRATION -->
+          <div
+            v-if="!loggedIn"
+            class="hidden items-center gap-3 sm:flex"
+          >
+          <!-- CUSTOMER REGISTRATION -->
           <NuxtLink
             to="/register"
             class="inline-flex items-center justify-center rounded-full border border-brew-700 bg-brew-50/70 px-5 py-3 text-sm font-semibold text-brew-900 backdrop-blur-sm transition hover:bg-brew-100"
@@ -182,18 +206,194 @@ const accountLabel = computed(() => {
         >
           {{ accountLabel }}
         </NuxtLink>
-        <details class="w-full rounded-2xl border border-brew-200 bg-brew-50/95 lg:hidden">
-          <summary class="cursor-pointer px-4 py-3 font-semibold">Menu</summary>
-          <nav aria-label="Mobile navigation" class="flex flex-col gap-1 px-2 pb-2">
-            <NuxtLink to="/" class="rounded-xl px-3 py-3">Home</NuxtLink>
-            <NuxtLink to="/catalog" class="rounded-xl px-3 py-3">Menu</NuxtLink>
-            <a href="#story" class="rounded-xl px-3 py-3">Our Story</a>
-            <a href="#visit" class="rounded-xl px-3 py-3">Visit</a>
+        <details
+          class="
+            relative
+            ml-auto
+            lg:hidden
+          "
+        >
+          <summary
+            class="
+              flex
+              h-11
+              w-11
+              cursor-pointer
+              list-none
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-brew-900/10
+              bg-brew-50/90
+              text-brew-950
+              shadow-sm
+              backdrop-blur-md
+            "
+            aria-label="Open navigation"
+          >
+            <span
+              class="
+                flex
+                flex-col
+                gap-1.5
+              "
+              aria-hidden="true"
+            >
+              <span
+                class="
+                  block
+                  h-0.5
+                  w-5
+                  rounded-full
+                  bg-brew-900
+                "
+              />
+              <span
+                class="
+                  block
+                  h-0.5
+                  w-5
+                  rounded-full
+                  bg-brew-900
+                "
+              />
+              <span
+                class="
+                  block
+                  h-0.5
+                  w-5
+                  rounded-full
+                  bg-brew-900
+                "
+              />
+            </span>
+          </summary>
+
+          <nav
+            aria-label="Mobile navigation"
+            class="
+              absolute
+              right-0
+              top-14
+              z-50
+              flex
+              w-64
+              flex-col
+              gap-1
+              rounded-2xl
+              border
+              border-brew-200
+              bg-brew-50/95
+              p-2
+              text-sm
+              font-medium
+              text-brew-900
+              shadow-xl
+              backdrop-blur-xl
+            "
+          >
+            <NuxtLink
+              to="/"
+              class="
+                rounded-xl
+                px-4
+                py-3
+                hover:bg-brew-100
+              "
+            >
+              Home
+            </NuxtLink>
+
+            <NuxtLink
+              to="/catalog"
+              class="
+                rounded-xl
+                px-4
+                py-3
+                hover:bg-brew-100
+              "
+            >
+              Menu
+            </NuxtLink>
+
+            <a
+              href="#story"
+              class="
+                rounded-xl
+                px-4
+                py-3
+                hover:bg-brew-100
+              "
+            >
+              Our Story
+            </a>
+
+            <a
+              href="#visit"
+              class="
+                rounded-xl
+                px-4
+                py-3
+                hover:bg-brew-100
+              "
+            >
+              Visit
+            </a>
+
+            <a
+              href="#developer"
+              class="
+                rounded-xl
+                px-4
+                py-3
+                hover:bg-brew-100
+              "
+            >
+              Developer
+            </a>
+
             <template v-if="!loggedIn">
-              <NuxtLink to="/register" class="rounded-xl px-3 py-3 sm:hidden">Create Account</NuxtLink>
-              <NuxtLink to="/login" class="rounded-xl px-3 py-3 sm:hidden">Sign In</NuxtLink>
+              <NuxtLink
+                to="/register"
+                class="
+                  rounded-xl
+                  px-4
+                  py-3
+                  sm:hidden
+                  hover:bg-brew-100
+                "
+              >
+                Create Account
+              </NuxtLink>
+
+              <NuxtLink
+                to="/login"
+                class="
+                  rounded-xl
+                  bg-brew-800
+                  px-4
+                  py-3
+                  text-white
+                  sm:hidden
+                "
+              >
+                Sign In
+              </NuxtLink>
             </template>
-            <NuxtLink v-else :to="accountDestination" class="rounded-xl px-3 py-3 sm:hidden">
+
+            <NuxtLink
+              v-else
+              :to="accountDestination"
+              class="
+                rounded-xl
+                bg-brew-800
+                px-4
+                py-3
+                text-white
+                sm:hidden
+              "
+            >
               {{ accountLabel }}
             </NuxtLink>
           </nav>
@@ -203,24 +403,61 @@ const accountLabel = computed(() => {
 
       <!-- HERO CONTENT -->
       <div
-        class="relative z-10 mx-auto flex max-w-7xl items-center px-4 sm:px-6 pb-24 pt-24 lg:min-h-180 lg:px-8 lg:pb-32 lg:pt-20"
+        class="
+          relative
+          z-10
+          mx-auto
+          flex
+          max-w-7xl
+          items-start
+          px-4
+          pb-16
+          pt-20
+          sm:px-6
+          sm:pb-20
+          sm:pt-24
+          lg:min-h-180
+          lg:items-center
+          lg:px-8
+          lg:pb-32
+          lg:pt-20
+        "
       >
-        <div class="max-w-2xl">
+        <div
+          class="
+            max-w-xl
+            rounded-3xl
+            bg-brew-950/20
+            p-4
+            backdrop-blur-[1px]
+            sm:p-6
+            lg:max-w-2xl
+            lg:bg-transparent
+            lg:p-0
+            lg:backdrop-blur-none
+          "
+        >
           <p
-            class="text-sm font-semibold uppercase tracking-[0.28em] text-brew-600"
+            class="
+            text-sm
+            font-semibold
+            uppercase
+            tracking-[0.28em]
+            text-brew-900
+            lg:text-brew-600
+          "
           >
             Good coffee. Great moments.
           </p>
 
           <h1
-            class="mt-6 font-semibold leading-none tracking-tight text-brew-950"
-            style="
-              font-size:
-                clamp(
-                  2.5rem,
-                  7vw,
-                  6.6rem
-                );
+            class="
+              mt-6
+              text-[clamp(2.5rem,7vw,6.6rem)]
+              font-semibold
+              leading-none
+              tracking-tight
+              text-brew-950
             "
           >
             Brewed for
@@ -249,7 +486,19 @@ const accountLabel = computed(() => {
           </div>
 
           <p
-            class="mt-7 max-w-xl text-lg leading-8 text-brew-700"
+            class="
+            mt-5
+            max-w-md
+            text-base
+            font-medium
+            leading-7
+            text-brew-950
+            sm:text-lg
+            sm:leading-8
+            lg:max-w-xl
+            lg:font-normal
+            lg:text-brew-700
+          "
           >
             From carefully brewed coffee to
             comforting cafe favorites, BrewHub
@@ -259,12 +508,44 @@ const accountLabel = computed(() => {
 
           <!-- CTA -->
           <div
-            class="mt-10 flex flex-wrap gap-4"
+            class="
+            mt-7
+            flex
+            flex-col
+            gap-3
+            sm:flex-row
+            sm:flex-wrap
+            sm:gap-4
+          "
           >
             <NuxtLink
               to="/catalog"
-              class="inline-flex items-center gap-3 rounded-xl bg-brew-800 px-7 py-4 text-sm font-semibold uppercase tracking-wide text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-brew-900 hover:shadow-xl"
-              style="background-color: var(--color-brew-800);"
+              class="
+                inline-flex
+                w-full
+                items-center
+                justify-center
+                gap-3
+                rounded-xl
+                bg-brew-800
+                px-7
+                py-4
+                text-sm
+                font-semibold
+                uppercase
+                tracking-wide
+                text-white
+                shadow-lg
+                transition
+                hover:-translate-y-0.5
+                hover:bg-brew-900
+                hover:shadow-xl
+                sm:w-auto
+              "
+              style="
+                background-color:
+                  var(--color-brew-800);
+              "
             >
               View Menu
 
@@ -275,7 +556,28 @@ const accountLabel = computed(() => {
 
             <a
               href="#visit"
-              class="inline-flex items-center gap-3 rounded-xl border border-brew-500 bg-brew-50/70 px-7 py-4 text-sm font-semibold uppercase tracking-wide text-brew-900 backdrop-blur-sm transition hover:bg-brew-100"
+              class="
+                inline-flex
+                w-full
+                items-center
+                justify-center
+                gap-3
+                rounded-xl
+                border
+                border-brew-500
+                bg-brew-50/70
+                px-7
+                py-4
+                text-sm
+                font-semibold
+                uppercase
+                tracking-wide
+                text-brew-900
+                backdrop-blur-sm
+                transition
+                hover:bg-brew-100
+                sm:w-auto
+              "
             >
               Visit BrewHub
             </a>
@@ -303,10 +605,40 @@ const accountLabel = computed(() => {
       class="border-y border-brew-200 bg-brew-50"
     >
       <div
-        class="mx-auto grid max-w-7xl gap-0 px-4 sm:px-6 py-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8"
+        class="
+          mx-auto
+          grid
+          max-w-7xl
+          grid-cols-2
+          gap-3
+          px-4
+          py-8
+          sm:px-6
+          sm:py-10
+          md:grid-cols-2
+          lg:grid-cols-4
+          lg:gap-0
+          lg:px-8
+          lg:py-12
+        "
       >
         <article
-          class="border-brew-200 px-6 py-5 lg:border-r"
+          class="
+            rounded-2xl
+            border
+            border-brew-200
+            bg-white/80
+            p-4
+            shadow-sm
+
+            lg:rounded-none
+            lg:border-0
+            lg:border-r
+            lg:bg-transparent
+            lg:px-6
+            lg:py-5
+            lg:shadow-none
+          "
         >
           <p
             class="text-xs font-semibold uppercase tracking-[0.18em] text-brew-500"
@@ -329,7 +661,22 @@ const accountLabel = computed(() => {
         </article>
 
         <article
-          class="border-brew-200 px-6 py-5 lg:border-r"
+          class="
+            rounded-2xl
+            border
+            border-brew-200
+            bg-white/80
+            p-4
+            shadow-sm
+
+            lg:rounded-none
+            lg:border-0
+            lg:border-r
+            lg:bg-transparent
+            lg:px-6
+            lg:py-5
+            lg:shadow-none
+          "
         >
           <p
             class="text-xs font-semibold uppercase tracking-[0.18em] text-brew-500"
@@ -352,7 +699,22 @@ const accountLabel = computed(() => {
         </article>
 
         <article
-          class="border-brew-200 px-6 py-5 lg:border-r"
+          class="
+            rounded-2xl
+            border
+            border-brew-200
+            bg-white/80
+            p-4
+            shadow-sm
+
+            lg:rounded-none
+            lg:border-0
+            lg:border-r
+            lg:bg-transparent
+            lg:px-6
+            lg:py-5
+            lg:shadow-none
+          "
         >
           <p
             class="text-xs font-semibold uppercase tracking-[0.18em] text-brew-500"
@@ -375,7 +737,21 @@ const accountLabel = computed(() => {
         </article>
 
         <article
-          class="px-6 py-5"
+          class="
+            rounded-2xl
+            border
+            border-brew-200
+            bg-white/80
+            p-4
+            shadow-sm
+
+            lg:rounded-none
+            lg:border-0
+            lg:bg-transparent
+            lg:px-6
+            lg:py-5
+            lg:shadow-none
+          "
         >
           <p
             class="text-xs font-semibold uppercase tracking-[0.18em] text-brew-500"
@@ -384,13 +760,29 @@ const accountLabel = computed(() => {
           </p>
 
           <h2
-            class="mt-3 text-xl font-semibold text-brew-950"
+            class="
+              mt-2
+              text-base
+              font-semibold
+              leading-5
+              text-brew-950
+              sm:text-lg
+              lg:mt-3
+              lg:text-xl
+            "
           >
             Made for Everyone
           </h2>
 
           <p
-            class="mt-2 text-sm leading-6 text-brew-600"
+            class="
+              mt-2
+              text-xs
+              leading-5
+              text-brew-600
+              sm:text-sm
+              sm:leading-6
+            "
           >
             Whether staying awhile or grabbing
             coffee to go, you're welcome here.
@@ -632,12 +1024,43 @@ const accountLabel = computed(() => {
         class="border-t border-brew-200 bg-brew-50"
       >
         <div
-          class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2 lg:px-8 lg:py-24"
+          class="
+            mx-auto
+            grid
+            max-w-7xl
+            items-center
+            gap-8
+            px-4
+            py-14
+            sm:px-6
+            sm:py-16
+            md:grid-cols-2
+            md:gap-10
+            lg:px-8
+            lg:py-24
+          "
         >
           <!-- Developer photo -->
-          <div class="flex justify-center md:justify-start">
+          <div
+            class="
+              flex
+              justify-center
+              md:justify-start
+            "
+          >
             <div
-              class="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-brew-200"
+              class="
+                w-full
+                max-w-60
+                overflow-hidden
+                rounded-3xl
+                bg-white
+                shadow-xl
+                ring-1
+                ring-brew-200
+                sm:max-w-70
+                md:max-w-sm
+              "
             >
               <img
                 src="/images/developer/Formal.jpg"

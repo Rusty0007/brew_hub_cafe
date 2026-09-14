@@ -5,6 +5,7 @@ import {
   insertPaymentRecord,
   findPaymentsByOrderId,
   insertRefundPaymentRecordWithAudit,
+  reconcileUnknownPaymentRecord,
 } from './repository'
 
 import {
@@ -350,6 +351,227 @@ export async function recordPaymentResult(
     }
 
     throw error
+  }
+}
+
+export interface ReconcileSimulatedUnknownPaymentInput {
+  provider:
+    | 'BREWHUB_TEST'
+    | 'TESDA_SIMULATED_GATEWAY'
+
+  providerReference: string
+}
+
+export async function reconcileSimulatedUnknownPaymentAsFailed(
+  input: ReconcileSimulatedUnknownPaymentInput,
+) {
+  const validSimulatedReference =
+    (
+      input.provider
+        === 'BREWHUB_TEST'
+      && input.providerReference
+        .startsWith(
+          'TEST-TIMEOUT-ORDER-',
+        )
+    )
+    || (
+      input.provider
+        === 'TESDA_SIMULATED_GATEWAY'
+      && input.providerReference
+        .startsWith(
+          'TESDA-TIMEOUT-ORDER-',
+        )
+    )
+
+  if (!validSimulatedReference) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        'Payment is not an eligible simulated timeout payment',
+    })
+  }
+
+  const existingPayment =
+    await findPaymentByProviderReference(
+      input.provider,
+      input.providerReference,
+    )
+
+  if (!existingPayment) {
+    return null
+  }
+
+  /*
+   * Only simulated PAYMENT records that
+   * are still UNKNOWN because of the
+   * payment-timeout simulation may be
+   * automatically reconciled.
+   */
+  if (
+    existingPayment.transactionType
+      !== 'PAYMENT'
+    || existingPayment.status
+      !== 'UNKNOWN'
+    || existingPayment.failureCode
+      !== 'PAYMENT_TIMEOUT'
+  ) {
+    return null
+  }
+
+  const reconciledPayment =
+    await reconcileUnknownPaymentRecord({
+      paymentId:
+        existingPayment.id,
+
+      status:
+        'FAILED',
+
+      failureCode:
+        'PAYMENT_TIMEOUT_EXPIRED',
+
+      failureMessage:
+        'Simulated payment timeout expired without a successful provider result.',
+    })
+
+  if (reconciledPayment) {
+    logInfo(
+      'payment.reconciled',
+      {
+        orderId:
+          reconciledPayment.orderId,
+
+        paymentId:
+          reconciledPayment.id,
+
+        provider:
+          reconciledPayment.provider,
+
+        providerReference:
+          reconciledPayment
+            .providerReference,
+
+        previousStatus:
+          'UNKNOWN',
+
+        paymentStatus:
+          reconciledPayment.status,
+
+        reason:
+          'simulated_timeout_expired',
+      },
+    )
+  }
+
+  return reconciledPayment
+}
+
+export async function reconcileSimulatedUnknownPaymentsForOrders(
+  orderIds: number[],
+) {
+  const uniqueOrderIds =
+    [
+      ...new Set(
+        orderIds,
+      ),
+    ]
+
+  if (
+    uniqueOrderIds.some(
+      orderId =>
+        !Number.isInteger(
+          orderId,
+        )
+        || orderId <= 0,
+    )
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage:
+        'Invalid order ID for payment reconciliation',
+    })
+  }
+
+  let reconciledCount = 0
+
+  for (
+    const orderId
+    of uniqueOrderIds
+  ) {
+    const orderPayments =
+      await getPaymentsByOrder(
+        orderId,
+      )
+
+    for (
+      const payment
+      of orderPayments
+    ) {
+      if (
+        payment.transactionType
+          !== 'PAYMENT'
+        || payment.status
+          !== 'UNKNOWN'
+        || payment.failureCode
+          !== 'PAYMENT_TIMEOUT'
+        || !payment.provider
+        || !payment.providerReference
+      ) {
+        continue
+      }
+
+            let simulatedProvider:
+        | 'BREWHUB_TEST'
+        | 'TESDA_SIMULATED_GATEWAY'
+        | null =
+          null
+
+      if (
+        payment.provider
+          === 'BREWHUB_TEST'
+        && payment.providerReference
+          .startsWith(
+            'TEST-TIMEOUT-ORDER-',
+          )
+      ) {
+        simulatedProvider =
+          'BREWHUB_TEST'
+      }
+      else if (
+        payment.provider
+          === 'TESDA_SIMULATED_GATEWAY'
+        && payment.providerReference
+          .startsWith(
+            'TESDA-TIMEOUT-ORDER-',
+          )
+      ) {
+        simulatedProvider =
+          'TESDA_SIMULATED_GATEWAY'
+      }
+
+      if (!simulatedProvider) {
+        continue
+      }
+
+      const reconciledPayment =
+        await reconcileSimulatedUnknownPaymentAsFailed({
+          provider:
+            simulatedProvider,
+
+          providerReference:
+            payment.providerReference,
+        })
+
+      if (reconciledPayment) {
+        reconciledCount += 1
+      }
+    }
+  }
+
+  return {
+    ordersChecked:
+      uniqueOrderIds.length,
+
+    reconciledCount,
   }
 }
 

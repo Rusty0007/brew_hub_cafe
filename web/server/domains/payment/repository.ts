@@ -329,6 +329,119 @@ export async function insertPaymentRecord(
   return payment
 }
 
+interface ReconcileUnknownPaymentRecordInput {
+  paymentId: number
+
+  status:
+    | 'SUCCEEDED'
+    | 'FAILED'
+
+  failureCode?:
+    | string
+    | null
+
+  failureMessage?:
+    | string
+    | null
+}
+
+export async function reconcileUnknownPaymentRecord(
+  input: ReconcileUnknownPaymentRecordInput,
+) {
+  const db =
+    useDb()
+
+  const processedAt =
+    new Date().toISOString()
+
+  const rows =
+    await db
+      .update(
+        payments,
+      )
+      .set({
+        status:
+          input.status,
+
+        failureCode:
+          input.failureCode
+          ?? null,
+
+        failureMessage:
+          input.failureMessage
+          ?? null,
+
+        processedAt,
+
+        updatedAt:
+          processedAt,
+      })
+      .where(
+        and(
+          eq(
+            payments.id,
+            input.paymentId,
+          ),
+          eq(
+            payments.transactionType,
+            'PAYMENT',
+          ),
+          eq(
+            payments.status,
+            'UNKNOWN',
+          ),
+        ),
+      )
+      .returning({
+        id:
+          payments.id,
+
+        orderId:
+          payments.orderId,
+
+        transactionType:
+          payments.transactionType,
+
+        parentPaymentId:
+          payments.parentPaymentId,
+
+        processedByUserId:
+          payments.processedByUserId,
+
+        method:
+          payments.method,
+
+        provider:
+          payments.provider,
+
+        providerReference:
+          payments.providerReference,
+
+        amount:
+          payments.amount,
+
+        status:
+          payments.status,
+
+        failureCode:
+          payments.failureCode,
+
+        failureMessage:
+          payments.failureMessage,
+
+        createdAt:
+          payments.createdAt,
+
+        updatedAt:
+          payments.updatedAt,
+
+        processedAt:
+          payments.processedAt,
+      })
+
+  return rows[0] ?? null
+}
+
 export async function insertRefundPaymentRecordWithAudit(
   input: CreatePaymentRecordInput,
   auditContext: RefundAuditContext,

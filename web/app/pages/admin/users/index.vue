@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 
 definePageMeta({
   middleware: [
@@ -213,6 +213,150 @@ async function updateRole(
   }
 }
 
+const deletingUserId =
+  ref<number | null>(null)
+
+const deleteReason =
+  ref('')
+
+const deletingUser =
+  ref(false)
+
+const deleteError =
+  ref('')
+
+const deleteSuccess =
+  ref('')
+
+async function startDelete(
+  user: StaffUser,
+) {
+  if (
+    !user.isActive
+    || !getEditableRole(user)
+  ) {
+    return
+  }
+
+  deletingUserId.value =
+    user.id
+
+  deleteReason.value =
+    ''
+
+  deleteError.value =
+    ''
+
+  deleteSuccess.value =
+    ''
+
+  editingUserId.value =
+    null
+
+  await nextTick()
+
+  document
+    .getElementById(
+      'delete-account-editor',
+    )
+    ?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+}
+
+function cancelDelete() {
+  deletingUserId.value =
+    null
+
+  deleteReason.value =
+    ''
+
+  deleteError.value =
+    ''
+}
+
+async function deleteAccount(
+  user: StaffUser,
+) {
+  const reason =
+    deleteReason.value.trim()
+
+  deleteError.value =
+    ''
+
+  deleteSuccess.value =
+    ''
+
+  if (!user.isActive) {
+    deleteError.value =
+      'This account is already inactive.'
+
+    return
+  }
+
+  if (!getEditableRole(user)) {
+    deleteError.value =
+      'This account cannot be deleted.'
+
+    return
+  }
+
+  if (reason.length < 3) {
+    deleteError.value =
+      'Please enter an account deletion reason.'
+
+    return
+  }
+
+  const confirmed =
+    window.confirm(
+      `Delete ${user.displayName}'s account? The account will be deactivated and will no longer be able to sign in.`,
+    )
+
+  if (!confirmed) {
+    return
+  }
+
+  deletingUser.value =
+    true
+
+  try {
+    await $csrfFetch(
+      `/api/admin/users/${user.id}`,
+      {
+        method: 'DELETE',
+
+        body: {
+          reason,
+        },
+      },
+    )
+
+    deleteSuccess.value =
+      `${user.displayName}'s account was deleted successfully.`
+
+    deletingUserId.value =
+      null
+
+    deleteReason.value =
+      ''
+
+    await refresh()
+  }
+  catch (error: unknown) {
+    deleteError.value =
+      getApiErrorMessage(
+        error,
+        'Unable to delete staff account.',
+      )
+  }
+  finally {
+    deletingUser.value =
+      false
+  }
+}
+
 const users = computed(
   () => data.value?.users ?? [],
 )
@@ -246,31 +390,124 @@ const users = computed(
         </p>
       </div>
 
-      <NuxtLink
-        to="/admin/users/new"
-        class="inline-flex items-center justify-center rounded-xl border border-brew-800 bg-brew-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brew-900"
-        style="background-color: var(--color-brew-800);"
+      <div
+        class="
+          flex
+          flex-wrap
+          gap-3
+        "
       >
-        Create staff account
-      </NuxtLink>
+        <button
+          type="button"
+          :disabled="pending"
+          class="
+            rounded-xl
+            border
+            border-brew-200
+            bg-white
+            px-5
+            py-3
+            text-sm
+            font-semibold
+            text-brew-700
+            shadow-sm
+            transition
+            hover:bg-brew-50
+            disabled:cursor-not-allowed
+            disabled:opacity-60
+          "
+          @click="refresh()"
+        >
+          {{
+            pending
+              ? 'Refreshing...'
+              : 'Refresh'
+          }}
+        </button>
+
+        <NuxtLink
+          to="/admin/users/new"
+          class="
+            inline-flex
+            items-center
+            justify-center
+            rounded-xl
+            border
+            border-brew-800
+            bg-brew-800
+            px-5
+            py-3
+            text-sm
+            font-semibold
+            text-white
+            shadow-sm
+            transition
+            hover:bg-brew-900
+          "
+          style="
+            background-color:
+              var(--color-brew-800);
+          "
+        >
+          Create staff account
+        </NuxtLink>
+      </div>
     </div>
 
     <div
-      v-if="pending"
-      class="mt-10 text-brew-500"
+      v-if="
+        pending
+        && users.length === 0
+      "
+      role="status"
+      aria-label="Loading user accounts"
+      class="
+        mt-10
+        rounded-3xl
+        border
+        border-brew-200
+        bg-white
+        p-4 sm:p-6
+      "
     >
-      Loading users...
+      <AppTableSkeleton
+        :rows="7"
+        :columns="4"
+      />
     </div>
 
-    <div
+    <AppStatePanel
       v-else-if="error"
-      class="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700"
+      class="mt-10"
+      variant="error"
+      title="Unable to load user accounts"
+      message="
+        BrewHub could not load the current
+        staff accounts. Try again to reload
+        the user list.
+      "
     >
-      Unable to load users.
-    </div>
+      <button
+        type="button"
+        class="
+          rounded-xl
+          bg-red-700
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-red-800
+        "
+        @click="refresh()"
+      >
+        Try Again
+      </button>
+    </AppStatePanel>
 
     <div
-      v-else
+      v-else-if="users.length > 0"
       class="mt-10 overflow-x-auto rounded-3xl border border-brew-200 bg-white"
      tabindex="0" role="region" aria-label="User accounts, scroll horizontally for more columns">
       <table class="w-full min-w-175 text-left">
@@ -304,10 +541,6 @@ const users = computed(
               <p class="font-medium text-brew-950">
                 <NuxtLink v-if="user.roles.some(role => ['CASHIER', 'MANAGER'].includes(role))" :to="`/admin/users/${user.id}`" class="underline decoration-brew-300 underline-offset-4 hover:text-brew-600">{{ user.displayName }}</NuxtLink>
                 <span v-else>{{ user.displayName }}</span>
-              </p>
-
-              <p class="mt-1 text-sm text-brew-500">
-                @{{ user.username }}
               </p>
 
               <p
@@ -353,26 +586,99 @@ const users = computed(
             </td>
 
             <td class="px-6 py-5">
+            <div
+              v-if="
+                user.isActive
+                && getEditableRole(user)
+              "
+              class="flex flex-wrap gap-2"
+            >
               <button
-                v-if="getEditableRole(user)"
                 type="button"
-                class="rounded-xl border border-brew-200 px-4 py-2 text-sm font-semibold text-brew-800 transition hover:bg-brew-50"
+                class="
+                  rounded-xl
+                  border
+                  border-brew-200
+                  px-4
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-brew-800
+                  transition
+                  hover:bg-brew-50
+                "
                 @click="startRoleEdit(user)"
               >
                 Manage role
               </button>
 
-              <span
-                v-else
-                class="text-sm text-brew-400"
+              <button
+                type="button"
+                class="
+                  rounded-xl
+                  border
+                  border-red-200
+                  px-4
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-red-700
+                  transition
+                  hover:bg-red-50
+                "
+                @click="startDelete(user)"
               >
-                Protected
-              </span>
-            </td>
+                Delete account
+              </button>
+            </div>
+
+
+            <span
+              v-else
+              class="text-sm text-brew-400"
+            >
+              {{
+                user.isActive
+                  ? 'Protected'
+                  : 'Inactive'
+              }}
+            </span>
+          </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <AppStatePanel
+      v-else
+      class="mt-10"
+      variant="empty"
+      title="No staff accounts yet"
+      message="
+        Create the first BrewHub staff
+        account to begin assigning roles
+        and managing system access.
+      "
+    >
+      <NuxtLink
+        to="/admin/users/new"
+        class="
+          inline-flex
+          items-center
+          justify-center
+          rounded-xl
+          bg-brew-800
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-brew-900
+        "
+      >
+        Create Staff Account
+      </NuxtLink>
+    </AppStatePanel>
     <div
       v-if="editingUserId !== null"
       id="role-change-editor"
@@ -483,6 +789,184 @@ const users = computed(
           Cancel
         </button>
       </div>
+    </div>
+    <div
+      v-if="deletingUserId !== null"
+      id="delete-account-editor"
+      class="
+        mt-6
+        rounded-3xl
+        border
+        border-red-200
+        bg-white
+        p-4 sm:p-6
+        shadow-sm
+      "
+    >
+      <h2
+        class="
+          text-xl
+          font-semibold
+          text-red-900
+        "
+      >
+        Delete Staff Account
+      </h2>
+
+      <p
+        class="
+          mt-2
+          text-sm
+          leading-6
+          text-brew-500
+        "
+      >
+        The account will be deactivated
+        rather than permanently removed.
+        Historical orders, telemetry, and
+        audit records will remain available.
+      </p>
+
+      <label class="mt-5 block">
+        <span
+          class="
+            text-sm
+            font-medium
+            text-brew-900
+          "
+        >
+          Deletion reason
+        </span>
+
+        <p
+          class="
+            mt-1
+            text-sm
+            text-brew-500
+          "
+        >
+          Required because administrative
+          account deletion must be recorded
+          in the audit trail.
+        </p>
+
+        <textarea
+          v-model.trim="deleteReason"
+          rows="3"
+          maxlength="500"
+          required
+          placeholder="Example: Employee no longer works at this branch"
+          class="
+            mt-2
+            w-full
+            resize-none
+            rounded-xl
+            border
+            border-red-200
+            bg-red-50/40
+            px-4
+            py-3
+            text-brew-950
+            outline-none
+            transition
+            focus:border-red-400
+          "
+        />
+      </label>
+
+      <p
+        v-if="deleteError"
+        class="
+          mt-4
+          text-sm
+          font-medium
+          text-red-600
+        "
+      >
+        {{ deleteError }}
+      </p>
+
+      <div
+        class="
+          mt-6
+          flex
+          flex-wrap
+          gap-3
+        "
+      >
+        <button
+          type="button"
+          :disabled="deletingUser"
+          class="
+            rounded-xl
+            bg-red-700
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-white
+            transition
+            hover:bg-red-800
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+          @click="
+            () => {
+              const user =
+                users.find(
+                  item =>
+                    item.id
+                    === deletingUserId,
+                )
+
+              if (user) {
+                deleteAccount(user)
+              }
+            }
+          "
+        >
+          {{
+            deletingUser
+              ? 'Deleting...'
+              : 'Delete account'
+          }}
+        </button>
+
+        <button
+          type="button"
+          :disabled="deletingUser"
+          class="
+            rounded-xl
+            border
+            border-brew-200
+            px-5
+            py-2.5
+            text-sm
+            font-semibold
+            text-brew-700
+          "
+          @click="cancelDelete"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="deleteSuccess"
+      class="
+        mt-6
+        rounded-2xl
+        border
+        border-green-200
+        bg-green-50
+        p-4
+        text-sm
+        font-medium
+        text-green-700
+      "
+    >
+      {{ deleteSuccess }}
     </div>
 
     <div

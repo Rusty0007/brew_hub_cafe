@@ -96,7 +96,7 @@ export default defineNuxtConfig({
     },
 
     scheduledTasks: {
-      '0 0 * * *': [
+      '* * * * *': [
         'ordering:recover-expired-pending-orders',
       ],
     },

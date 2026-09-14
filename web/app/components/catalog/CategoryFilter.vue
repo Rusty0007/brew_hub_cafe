@@ -22,10 +22,38 @@ const emit = defineEmits<{
       Categories
     </p>
 
-    <div class="mt-5 flex flex-wrap gap-2">
+    <div
+      class="
+        -mx-1
+        mt-4
+        flex
+        flex-nowrap
+        gap-2
+        overflow-x-auto
+        px-1
+        pb-2
+
+        sm:mx-0
+        sm:mt-5
+        sm:flex-wrap
+        sm:overflow-visible
+        sm:px-0
+        sm:pb-0
+      "
+    >
       <button
         type="button"
-        class="rounded-full px-5 py-2.5 text-sm font-medium transition"
+        class="
+        shrink-0
+        rounded-full
+        px-4
+        py-2
+        text-sm
+        font-medium
+        transition
+        sm:px-5
+        sm:py-2.5
+      "
         :class="
           selectedCategoryId === null
             ? 'bg-brew-900 text-white shadow-sm'
@@ -40,7 +68,17 @@ const emit = defineEmits<{
         v-for="category in categories"
         :key="category.id"
         type="button"
-        class="rounded-full px-5 py-2.5 text-sm font-medium transition"
+        class="
+        shrink-0
+        rounded-full
+        px-4
+        py-2
+        text-sm
+        font-medium
+        transition
+        sm:px-5
+        sm:py-2.5
+      "
         :class="
           selectedCategoryId === category.id
             ? 'bg-brew-900 text-white shadow-sm'

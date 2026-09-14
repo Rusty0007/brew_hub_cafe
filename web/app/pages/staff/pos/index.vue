@@ -532,11 +532,6 @@ function applySearch() {
     searchInput.value.trim()
 }
 
-function clearSearch() {
-  searchInput.value = ''
-  appliedSearch.value = ''
-}
-
 async function searchCustomers() {
   const search =
     customerSearchInput.value.trim()

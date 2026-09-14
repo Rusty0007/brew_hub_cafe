@@ -161,7 +161,7 @@ const approvedDomainDependencies = {
     ],
   },
 
-  ordering: {
+    ordering: {
     catalog: [
       'service',
     ],
@@ -175,6 +175,10 @@ const approvedDomainDependencies = {
     ],
 
     payment: [
+      'service',
+    ],
+
+    'staff-duty': [
       'service',
     ],
 

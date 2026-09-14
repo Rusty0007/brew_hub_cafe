@@ -222,10 +222,12 @@ onUnmounted(() => {
     >
       <div
         class="
-          aspect-4/3
+          h-44
           overflow-hidden
           rounded-2xl
           bg-brew-100
+          sm:h-auto
+          sm:aspect-4/3
         "
       >
         <img
@@ -281,7 +283,14 @@ onUnmounted(() => {
     </button>
 
     <!-- PRODUCT INFORMATION -->
-    <div class="px-1 pb-1 pt-4">
+    <div
+      class="
+        px-1
+        pb-1
+        pt-3
+        sm:pt-4
+      "
+    >
       <div
         class="
           flex flex-wrap items-start
@@ -293,13 +302,15 @@ onUnmounted(() => {
           <button
             type="button"
             class="
-              text-left
-              text-lg font-semibold
-              tracking-tight
-              text-brew-900
-              transition
-              hover:text-brew-700
-            "
+            text-left
+            text-base
+            font-semibold
+            tracking-tight
+            text-brew-900
+            transition
+            hover:text-brew-700
+            sm:text-lg
+          "
             :disabled="!enableQuickView"
             @click="openQuickView"
           >
@@ -331,11 +342,14 @@ onUnmounted(() => {
       <p
         v-if="product.description"
         class="
-          mt-3
+          mt-2
           line-clamp-2
-          text-sm
-          leading-6
+          text-xs
+          leading-5
           text-brew-500
+          sm:mt-3
+          sm:text-sm
+          sm:leading-6
         "
       >
         {{ product.description }}
@@ -344,9 +358,10 @@ onUnmounted(() => {
       <!-- ACTIONS -->
       <div
         class="
-          mt-5
+          mt-3
           flex
           gap-2
+          sm:mt-5
         "
       >
         <button
@@ -355,7 +370,9 @@ onUnmounted(() => {
             flex-1
             rounded-2xl
             bg-brew-900
-            px-4 py-3
+            px-4
+            py-2.5
+            sm:py-3
             text-sm font-semibold
             text-white
             transition

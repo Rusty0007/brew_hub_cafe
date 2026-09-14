@@ -284,21 +284,64 @@ function nextPage() {
       >
         <!-- SEARCH -->
         <form
-          class="flex flex-col gap-3 lg:flex-row"
+          class="
+            flex
+            flex-wrap
+            items-stretch
+            gap-2
+          "
           @submit.prevent="submitSearch"
         >
-          <div class="relative flex-1">
-            <input
-              v-model="searchInput"
-              type="search"
-              placeholder="Search coffee, drinks, pastries, or SKU..."
-              class="w-full rounded-xl border border-brew-200 bg-brew-50 px-5 py-3.5 text-sm text-brew-900 outline-none transition placeholder:text-brew-400 focus:border-brew-500 focus:ring-2 focus:ring-brew-100"
-            >
-          </div>
+          <div
+          class="
+            relative
+            min-w-0
+            flex-1
+            basis-52
+          "
+        >
+          <input
+            v-model="searchInput"
+            type="search"
+            placeholder="Search coffee, drinks, pastries, or SKU..."
+            class="
+              w-full
+              rounded-xl
+              border
+              border-brew-200
+              bg-brew-50
+              px-4
+              py-3
+              text-sm
+              text-brew-900
+              outline-none
+              transition
+              placeholder:text-brew-400
+              focus:border-brew-500
+              focus:ring-2
+              focus:ring-brew-100
+              sm:px-5
+              sm:py-3.5
+            "
+          >
+        </div>
 
           <button
             type="submit"
-            class="rounded-xl bg-brew-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-brew-700"
+            class="
+              shrink-0
+              rounded-xl
+              bg-brew-900
+              px-5
+              py-3
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-brew-700
+              sm:px-7
+              sm:py-3.5
+            "
           >
             Search
           </button>
@@ -306,7 +349,23 @@ function nextPage() {
           <button
             v-if="searchQuery"
             type="button"
-            class="rounded-xl border border-brew-200 bg-white px-6 py-3.5 text-sm font-medium text-brew-600 transition hover:bg-brew-100 hover:text-brew-900"
+            class="
+            shrink-0
+            rounded-xl
+            border
+            border-brew-200
+            bg-white
+            px-4
+            py-3
+            text-sm
+            font-medium
+            text-brew-600
+            transition
+            hover:bg-brew-100
+            hover:text-brew-900
+            sm:px-6
+            sm:py-3.5
+          "
             @click="clearSearch"
           >
             Clear
@@ -459,18 +518,59 @@ function nextPage() {
           && !productsError
           && totalProducts > limit
         "
-        class="mt-12 flex flex-col gap-5 border-t border-brew-200 pt-8 sm:flex-row sm:items-center sm:justify-between"
+        class="
+        mt-10
+        grid
+        grid-cols-2
+        gap-3
+        border-t
+        border-brew-200
+        pt-6
+
+        sm:mt-12
+        sm:flex
+        sm:items-center
+        sm:justify-between
+        sm:gap-5
+        sm:pt-8
+      "
       >
         <button
           type="button"
           :disabled="!hasPreviousPage"
-          class="rounded-xl border border-brew-200 bg-white px-5 py-3 text-sm font-medium text-brew-700 transition hover:bg-brew-100 disabled:cursor-not-allowed disabled:opacity-40"
+          class="
+          w-full
+          rounded-xl
+          border
+          border-brew-200
+          bg-white
+          px-4
+          py-3
+          text-sm
+          font-medium
+          text-brew-700
+          transition
+          hover:bg-brew-100
+          disabled:cursor-not-allowed
+          disabled:opacity-40
+          sm:w-auto
+          sm:px-5
+        "
           @click="previousPage"
         >
           ← Previous
         </button>
 
-        <div class="text-center">
+        <div
+        class="
+          col-span-2
+          order-first
+          text-center
+
+          sm:order-0
+          sm:col-auto
+          "
+         >
           <p
             class="text-sm font-semibold text-brew-800"
           >
@@ -491,7 +591,22 @@ function nextPage() {
         <button
           type="button"
           :disabled="!hasNextPage"
-          class="rounded-xl bg-brew-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-brew-700 disabled:cursor-not-allowed disabled:opacity-40"
+          class="
+          w-full
+          rounded-xl
+          bg-brew-900
+          px-4
+          py-3
+          text-sm
+          font-medium
+          text-white
+          transition
+          hover:bg-brew-700
+          disabled:cursor-not-allowed
+          disabled:opacity-40
+          sm:w-auto
+          sm:px-5
+        "
           @click="nextPage"
         >
           Next →

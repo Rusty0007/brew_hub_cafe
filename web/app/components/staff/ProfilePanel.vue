@@ -61,7 +61,9 @@ async function save() {
           <div class="flex size-16 shrink-0 items-center justify-center rounded-full bg-brew-100 text-2xl font-semibold text-brew-800" aria-hidden="true">{{ profile.displayName.trim().slice(0, 1).toUpperCase() }}</div>
           <div class="min-w-0 flex-1">
             <h2 class="text-2xl font-semibold text-brew-950">{{ profile.displayName }}</h2>
-            <p class="mt-1 text-sm text-brew-500">@{{ profile.username }} · Staff ID {{ profile.id }}</p>
+           <p class="mt-1 text-sm text-brew-500">
+            Staff ID {{ profile.id }}
+          </p>
           </div>
           <span class="rounded-full px-3 py-2 text-sm font-semibold" :class="profile.isActive ? 'bg-green-50 text-green-800' : 'bg-stone-100 text-stone-700'">{{ profile.isActive ? 'Active account' : 'Inactive account' }}</span>
         </div>

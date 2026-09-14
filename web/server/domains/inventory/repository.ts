@@ -388,6 +388,59 @@ export async function findActiveReservationsByOrder(
     )
 }
 
+export async function findExpiredActiveReservationOrderIds(
+  limit = 100,
+) {
+  const db =
+    useDb()
+
+  const rows =
+    await db
+      .select({
+        orderId:
+          inventoryReservations.orderId,
+
+        expiresAt:
+          inventoryReservations.expiresAt,
+      })
+      .from(
+        inventoryReservations,
+      )
+      .where(
+        and(
+          eq(
+            inventoryReservations.status,
+            'ACTIVE',
+          ),
+
+          sql`
+            ${inventoryReservations.expiresAt}
+            IS NOT NULL
+          `,
+
+          sql`
+            ${inventoryReservations.expiresAt}
+            <= NOW()
+          `,
+        ),
+      )
+      .orderBy(
+        inventoryReservations.expiresAt,
+      )
+      .limit(
+        limit,
+      )
+
+  return [
+    ...new Set(
+      rows.map(
+        row =>
+          row.orderId,
+      ),
+    ),
+  ]
+}
+
 export async function findReservationsByOrder(
   orderId: number,
 ) {

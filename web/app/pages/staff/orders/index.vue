@@ -92,9 +92,34 @@ const {
 const ORDER_REFRESH_INTERVAL_MS =
   4000
 
-let orderRefreshTimer:
-  number | null =
-    null
+const {
+  isVeryFresh:
+    isVeryFreshOrder,
+
+  getFreshnessClass:
+    getOrderFreshnessClass,
+} = useFreshDataHighlight()
+
+  function formatOrderTotal(
+    amount: number,
+  ) {
+    return new Intl.NumberFormat(
+      'en-PH',
+      {
+        style:
+          'currency',
+
+        currency:
+          'PHP',
+      },
+    ).format(
+      amount,
+    )
+  }
+
+  let orderRefreshTimer:
+    number | null =
+      null
 
 async function autoRefreshOrders() {
   /*
@@ -223,6 +248,26 @@ function formatSource(
     : 'Customer'
 }
 
+function getSourceClass(
+  source: OrderSource,
+) {
+  if (
+    source === 'POS'
+  ) {
+    return `
+      border-brew-300
+      bg-brew-100
+      text-brew-900
+    `
+  }
+
+  return `
+    border-brew-200
+    bg-brew-50
+    text-brew-700
+  `
+}
+
 function formatPersonName(
   firstName: string | null,
   lastName: string | null,
@@ -280,6 +325,14 @@ function formatOrderType(
     default:
       return 'Takeout'
   }
+}
+
+function getOrderTypeClass() {
+  return `
+    border-amber-200
+    bg-amber-50
+    text-amber-800
+  `
 }
 
 function formatStatus(
@@ -741,22 +794,390 @@ async function refreshOrders() {
         </button>
       </AppStatePanel>
 
-    <!-- ORDERS TABLE -->
-    <div
-      v-else
-      class="
-        mt-6
-        overflow-hidden
-        rounded-3xl
-        border
-        border-brew-200
-        bg-white
-        shadow-sm
-      "
-    >
-      <div
-        class="overflow-x-auto"
-       tabindex="0" role="region" aria-label="Orders, scroll horizontally for more columns">
+        <!-- ORDERS TABLE -->
+        <div
+          v-else
+          class="
+            mt-6
+            overflow-hidden
+            rounded-3xl
+            border
+            border-brew-200
+            bg-white
+            shadow-sm
+          "
+        >
+                   <!-- MOBILE ORDER CARDS -->
+          <div
+            class="
+              divide-y
+              divide-brew-100
+              md:hidden
+            "
+          >
+            <article
+              v-for="
+                order in filteredOrders
+              "
+              :key="order.id"
+              :class="[
+                'p-4',
+                'transition-colors',
+                'duration-500',
+                ...getOrderFreshnessClass(
+                  order.createdAt,
+                ),
+              ]"
+            >
+              <div
+                class="
+                  flex
+                  items-start
+                  justify-between
+                  gap-3
+                "
+              >
+                <div class="min-w-0">
+                <div
+                  class="
+                    flex
+                    min-w-0
+                    items-center
+                    gap-2
+                  "
+                >
+                  <NuxtLink
+                    :to="`/staff/orders/${order.id}`"
+                    class="
+                      min-w-0
+                      truncate
+                      text-base
+                      font-bold
+                      text-brew-950
+                      underline-offset-4
+                      transition
+                      hover:text-brew-600
+                      hover:underline
+                    "
+                  >
+                    {{ order.orderNo }}
+                  </NuxtLink>
+
+                  <span
+                    v-if="
+                      isVeryFreshOrder(
+                        order.createdAt,
+                      )
+                    "
+                    class="
+                      shrink-0
+                      rounded-full
+                      border
+                      border-amber-300
+                      bg-amber-200
+                      px-2
+                      py-0.5
+                      text-[10px]
+                      font-bold
+                      uppercase
+                      tracking-[0.08em]
+                      text-amber-900
+                    "
+                  >
+                    New
+                  </span>
+                </div>
+
+                <p
+                  class="
+                    mt-1
+                    text-xs
+                    text-brew-400
+                  "
+                >
+                  Order ID {{ order.id }}
+                </p>
+              </div>
+
+                <p
+                  class="
+                    shrink-0
+                    text-base
+                    font-bold
+                    text-brew-950
+                  "
+                >
+                  {{
+                    formatOrderTotal(
+                      order.totalAmount,
+                    )
+                  }}
+                </p>
+              </div>
+
+              <div
+                class="
+                  mt-3
+                  flex
+                  flex-wrap
+                  gap-2
+                "
+              >
+                <span
+                  class="
+                    inline-flex
+                    rounded-full
+                    border
+                    px-2.5
+                    py-1
+                    text-xs
+                    font-semibold
+                  "
+                  :class="
+                    getSourceClass(
+                      order.source,
+                    )
+                  "
+                >
+                  {{
+                    formatSource(
+                      order.source,
+                    )
+                  }}
+                </span>
+
+                <span
+                  class="
+                    inline-flex
+                    rounded-full
+                    border
+                    px-2.5
+                    py-1
+                    text-xs
+                    font-semibold
+                  "
+                  :class="
+                    getOrderTypeClass()
+                  "
+                >
+                  {{
+                    formatOrderType(
+                      order.orderType,
+                    )
+                  }}
+                </span>
+
+                <span
+                  class="
+                    inline-flex
+                    rounded-full
+                    border
+                    px-2.5
+                    py-1
+                    text-xs
+                    font-semibold
+                  "
+                  :class="
+                    getStatusClass(
+                      order.status,
+                    )
+                  "
+                >
+                  {{
+                    formatStatus(
+                      order.status,
+                    )
+                  }}
+                </span>
+              </div>
+
+              <div
+                class="
+                  mt-4
+                  grid
+                  grid-cols-2
+                  gap-x-4
+                  gap-y-4
+                  border-t
+                  border-brew-100
+                  pt-4
+                "
+              >
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-brew-400
+                    "
+                  >
+                    Created by
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-sm
+                      font-semibold
+                      text-brew-900
+                    "
+                  >
+                    {{
+                      formatPersonName(
+                        order.createdByFirstName,
+                        order.createdByLastName,
+                      )
+                    }}
+                  </p>
+
+                  <p
+                    class="
+                      mt-0.5
+                      text-xs
+                      text-brew-500
+                    "
+                  >
+                    {{ getCreatedByPosition(order) }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-brew-400
+                    "
+                  >
+                    Cashier
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-sm
+                      font-semibold
+                      text-brew-900
+                    "
+                  >
+                    <template
+                      v-if="
+                        order.cashierUserId !== null
+                      "
+                    >
+                      {{
+                        formatPersonName(
+                          order.cashierFirstName,
+                          order.cashierLastName,
+                        )
+                      }}
+                    </template>
+
+                    <span
+                      v-else
+                      class="
+                        font-normal
+                        text-brew-400
+                      "
+                    >
+                      Unassigned
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-brew-400
+                    "
+                  >
+                    Manager
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-sm
+                      font-semibold
+                      text-brew-900
+                    "
+                  >
+                    <template
+                      v-if="
+                        order.managerUserId !== null
+                      "
+                    >
+                      {{
+                        formatPersonName(
+                          order.managerFirstName,
+                          order.managerLastName,
+                        )
+                      }}
+                    </template>
+
+                    <span
+                      v-else
+                      class="
+                        font-normal
+                        text-brew-400
+                      "
+                    >
+                      Unassigned
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-brew-400
+                    "
+                  >
+                    Created
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-sm
+                      font-medium
+                      text-brew-700
+                    "
+                  >
+                    {{
+                      formatDate(
+                        order.createdAt,
+                      )
+                    }}
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- DESKTOP ORDERS TABLE -->
+          <div
+            class="
+              hidden
+              overflow-x-auto
+              md:block
+            "
+            tabindex="0"
+            role="region"
+            aria-label="Orders, scroll horizontally for more columns"
+          >
         <table
           class="
             w-full
@@ -829,10 +1250,13 @@ async function refreshOrders() {
                 order in filteredOrders
               "
               :key="order.id"
-              class="
-                transition
-                hover:bg-brew-50/60
-              "
+              :class="[
+                'transition-colors',
+                'duration-500',
+                ...getOrderFreshnessClass(
+                  order.createdAt,
+                ),
+              ]"
             >
               <td
                 class="px-5 py-4"

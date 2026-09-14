@@ -7,7 +7,6 @@ const {
 
 const {
   showConfirm,
-  showSuccess,
   showError,
 } = useAppModal()
 

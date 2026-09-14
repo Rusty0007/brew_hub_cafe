@@ -19,7 +19,6 @@ import {
 
 import {
   completeCustomerCheckout,
-  simulatePosPaymentTimeout,
   simulateCustomerPaymentTimeout,
 } from '#server/domains/ordering/checkout-service'
 

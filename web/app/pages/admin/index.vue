@@ -50,8 +50,9 @@ definePageMeta({
         <p
           class="mt-3 text-sm leading-6 text-brew-500"
         >
-          Create staff accounts, assign roles,
-          and manage account access.
+          Create staff accounts, manage roles,
+          control account access, and review
+          protected or inactive accounts.
         </p>
       </NuxtLink>
 
@@ -78,9 +79,9 @@ definePageMeta({
             <p
               class="mt-3 text-sm leading-6 text-brew-500"
             >
-              Review request traces, API activity,
-              response status, execution time,
-              users, branches, and orders.
+              Review request activity, telemetry
+              events, trace IDs, performance data,
+              security events, and system context.
             </p>
           </div>
         

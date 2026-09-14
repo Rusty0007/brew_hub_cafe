@@ -105,6 +105,7 @@ const {
   data: productData,
   pending: productPending,
   error: productError,
+  refresh: refreshProducts,
 } = await useFetch<StaffProductsResponse>(
   '/api/staff/catalog/products',
 )
@@ -138,6 +139,14 @@ const movements = computed(
     movementData.value?.movements
     ?? [],
 )
+
+const {
+  isVeryFresh:
+    isVeryFreshMovement,
+
+  getFreshnessClass:
+    getMovementFreshnessClass,
+} = useFreshDataHighlight()
 
 /*
  *  Receive Stock UI state
@@ -481,6 +490,40 @@ function stockStatusClasses(
   return 'bg-emerald-50 text-emerald-700'
 }
 
+function stockCardClasses(
+  item: InventoryItem,
+) {
+  if (item.availableQty <= 0) {
+    return 'bg-red-50/60'
+  }
+
+  if (
+    item.availableQty
+    <= item.reorderLevel
+  ) {
+    return 'bg-amber-50/60'
+  }
+
+  return 'bg-white'
+}
+
+function availableQuantityClasses(
+  item: InventoryItem,
+) {
+  if (item.availableQty <= 0) {
+    return 'text-red-700'
+  }
+
+  if (
+    item.availableQty
+    <= item.reorderLevel
+  ) {
+    return 'text-amber-700'
+  }
+
+  return 'text-emerald-700'
+}
+
 function getApiErrorMessage(
   error: unknown,
   fallback: string,
@@ -572,7 +615,7 @@ function getApiErrorMessage(
                 : 'Receive Stock'
             }}
           </button>
-      
+
           <!-- ADJUST STOCK BUTTON -->
           <button
             type="button"
@@ -588,16 +631,19 @@ function getApiErrorMessage(
                 : 'Adjust Stock'
             }}
           </button>
-      
+
           <!-- REFRESH BUTTON -->
           <button
             type="button"
             class="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="pending"
+            :disabled="
+              pending
+              || movementPending
+            "
             @click="refreshInventory"
           >
             {{
-              pending
+              pending || movementPending
                 ? 'Refreshing...'
                 : 'Refresh'
             }}
@@ -637,7 +683,7 @@ function getApiErrorMessage(
           >
             Product
           </span>
-      
+
           <select
             v-model.number="
               receiveForm.productId
@@ -655,7 +701,7 @@ function getApiErrorMessage(
             >
               Select a product
             </option>
-        
+
             <option
               v-for="product in productOptions"
               :key="product.id"
@@ -664,13 +710,36 @@ function getApiErrorMessage(
               {{ product.name }} — {{ product.sku }}
             </option>
           </select>
-      
-          <p
+
+          <div
             v-if="productError"
-            class="mt-2 text-xs text-red-700"
+            class="
+              mt-2
+              flex
+              flex-wrap
+              items-center
+              gap-2
+              text-xs
+              text-red-700
+            "
           >
-            Unable to load products.
-          </p>
+            <span>
+              Unable to load products.
+            </span>
+
+            <button
+              type="button"
+              class="
+                font-semibold
+                underline
+                underline-offset-2
+                hover:text-red-900
+              "
+              @click="refreshProducts()"
+            >
+              Try Again
+            </button>
+          </div>
         </label>
 
         <label class="block">
@@ -791,7 +860,7 @@ function getApiErrorMessage(
           >
             Product
           </span>
-      
+
           <select
             v-model.number="
               adjustForm.productId
@@ -809,7 +878,7 @@ function getApiErrorMessage(
             >
               Select a product
             </option>
-        
+
             <option
               v-for="product in productOptions"
               :key="product.id"
@@ -818,13 +887,36 @@ function getApiErrorMessage(
               {{ product.name }} — {{ product.sku }}
             </option>
           </select>
-      
-          <p
+
+          <div
             v-if="productError"
-            class="mt-2 text-xs text-red-700"
+            class="
+              mt-2
+              flex
+              flex-wrap
+              items-center
+              gap-2
+              text-xs
+              text-red-700
+            "
           >
-            Unable to load products.
-          </p>
+            <span>
+              Unable to load products.
+            </span>
+
+            <button
+              type="button"
+              class="
+                font-semibold
+                underline
+                underline-offset-2
+                hover:text-red-900
+              "
+              @click="refreshProducts()"
+            >
+              Try Again
+            </button>
+          </div>
         </label>
 
         <label class="block">
@@ -902,56 +994,321 @@ function getApiErrorMessage(
     </div>
 
     <!-- Loading -->
-    <div
-      v-if="pending"
-      class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
-    >
-      Loading inventory...
-    </div>
+      <div
+        v-if="
+          pending
+          && inventory.length === 0
+        "
+        role="status"
+        aria-label="Loading inventory"
+        class="
+          rounded-2xl
+          border
+          border-stone-200
+          bg-white
+          p-4 sm:p-6
+          shadow-sm
+        "
+      >
+        <AppTableSkeleton
+          :rows="8"
+          :columns="6"
+        />
+      </div>
 
     <!-- Error -->
-    <div
+    <AppStatePanel
       v-else-if="error"
-      class="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-6"
+      variant="error"
+      title="Unable to load inventory"
+      message="
+        BrewHub could not load the current
+        inventory records. Try again to
+        reload the latest stock data.
+      "
     >
-      <p
-        class="font-medium text-red-800"
+      <button
+        type="button"
+        class="
+          rounded-xl
+          bg-red-700
+          px-5
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          transition
+          hover:bg-red-800
+        "
+        @click="refreshInventory"
       >
-        Unable to load inventory.
-      </p>
-
-      <p
-        class="mt-1 text-sm text-red-700"
-      >
-        Please try again.
-      </p>
-    </div>
+        Try Again
+      </button>
+    </AppStatePanel>
 
     <!-- Empty -->
-    <div
+    <AppStatePanel
       v-else-if="inventory.length === 0"
-      class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-10 text-center"
-    >
-      <h2
-        class="text-lg font-semibold text-stone-900"
-      >
-        No inventory records yet
-      </h2>
-
-      <p
-        class="mt-2 text-sm text-stone-600"
-      >
-        Inventory records are created
-        when stock is first received.
-      </p>
-        </div>
+      variant="empty"
+      title="No inventory records yet"
+      message="
+        Inventory records will appear
+        after stock is received for the
+        first time.
+      "
+    />
 
         <!-- Inventory table -->
-    <div
-      v-else
-      class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
-    >
-      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Inventory stock levels, scroll horizontally for more columns">
+        <div
+          v-else
+          class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
+        >
+          <!-- MOBILE INVENTORY CARDS -->
+          <div
+            class="
+              divide-y
+              divide-stone-100
+              md:hidden
+            "
+          >
+            <article
+              v-for="item in inventory"
+              :key="item.id"
+              class="
+                p-4
+                transition-colors
+                duration-300
+              "
+              :class="
+                stockCardClasses(
+                  item,
+                )
+              "
+            >
+              <div
+                class="
+                  flex
+                  items-start
+                  justify-between
+                  gap-3
+                "
+              >
+                <div class="min-w-0">
+                  <p
+                    class="
+                      truncate
+                      text-base
+                      font-semibold
+                      text-stone-900
+                    "
+                  >
+                    {{ item.productName }}
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-xs
+                      text-stone-500
+                    "
+                  >
+                    {{ item.sku }}
+                  </p>
+                </div>
+
+                <span
+                  class="
+                    inline-flex
+                    shrink-0
+                    rounded-full
+                    px-2.5
+                    py-1
+                    text-xs
+                    font-medium
+                  "
+                  :class="
+                    stockStatusClasses(
+                      item,
+                    )
+                  "
+                >
+                  {{
+                    stockStatus(
+                      item,
+                    )
+                  }}
+                </span>
+              </div>
+
+              <div
+                class="
+                  mt-4
+                  grid
+                  grid-cols-2
+                  gap-x-4
+                  gap-y-4
+                  border-t
+                  border-stone-100
+                  pt-4
+                "
+              >
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    On hand
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-lg
+                      font-semibold
+                      text-stone-900
+                    "
+                  >
+                    {{
+                      formatQuantity(
+                        item.onHandQty,
+                      )
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    Reserved
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-lg
+                      font-medium
+                      text-stone-700
+                    "
+                  >
+                    {{
+                      formatQuantity(
+                        item.reservedQty,
+                      )
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    Available
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-xl
+                      font-bold
+                    "
+                    :class="
+                      availableQuantityClasses(
+                        item,
+                      )
+                    "
+                  >
+                    {{
+                      formatQuantity(
+                        item.availableQty,
+                      )
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[11px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    Reorder level
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-lg
+                      font-medium
+                      text-stone-700
+                    "
+                  >
+                    {{
+                      formatQuantity(
+                        item.reorderLevel,
+                      )
+                    }}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="
+                  mt-4
+                  border-t
+                  border-stone-100
+                  pt-3
+                "
+              >
+                <p
+                  class="
+                    text-xs
+                    text-stone-500
+                  "
+                >
+                  Updated
+                  {{
+                    formatDate(
+                      item.updatedAt,
+                    )
+                  }}
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <!-- DESKTOP INVENTORY TABLE -->
+          <div
+            class="
+              hidden
+              overflow-x-auto
+              md:block
+            "
+            tabindex="0"
+            role="region"
+            aria-label="Inventory stock levels, scroll horizontally for more columns"
+          >
         <table
           class="w-full text-left"
           style="min-width: 900px"
@@ -1118,45 +1475,352 @@ function getApiErrorMessage(
       </div>
 
       <!-- Movement loading -->
-      <div
-        v-if="movementPending"
-        class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
-      >
-        Loading stock movements...
-      </div>
+        <div
+          v-if="
+            movementPending
+            && movements.length === 0
+          "
+          role="status"
+          aria-label="Loading stock movements"
+          class="
+            rounded-2xl
+            border
+            border-stone-200
+            bg-white
+            p-4 sm:p-6
+            shadow-sm
+          "
+        >
+          <AppTableSkeleton
+            :rows="6"
+            :columns="7"
+          />
+        </div>
 
       <!-- Movement error -->
-      <div
-        v-else-if="movementError"
-        class="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-6"
-      >
-        <p
-          class="font-medium text-red-800"
+        <AppStatePanel
+          v-else-if="movementError"
+          variant="error"
+          title="Unable to load stock movements"
+          message="
+            BrewHub could not load the latest
+            stock movement history. Try again
+            to reload the records.
+          "
         >
-          Unable to load stock movements.
-        </p>
-
-        <p
-          class="mt-1 text-sm text-red-700"
-        >
-          Please try again.
-        </p>
-      </div>
-
+          <button
+            type="button"
+            class="
+              rounded-xl
+              bg-red-700
+              px-5
+              py-2.5
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-red-800
+            "
+            @click="refreshMovements()"
+          >
+            Try Again
+          </button>
+        </AppStatePanel>
       <!-- No movements -->
-      <div
-        v-else-if="movements.length === 0"
-        class="rounded-2xl border border-stone-200 bg-white p-4 sm:p-8 text-center text-sm text-stone-500"
-      >
-        No stock movements yet.
-      </div>
+        <AppStatePanel
+          v-else-if="movements.length === 0"
+          variant="empty"
+          title="No stock movements yet"
+          message="
+            Receipts, adjustments, reservations,
+            releases, and sales will appear here
+            once inventory activity begins.
+          "
+        />
 
       <!-- Movement table -->
-      <div
-        v-else
-        class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
-      >
-        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Inventory movement history, scroll horizontally for more columns">
+        <div
+          v-else
+          class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
+        >
+          <!-- MOBILE MOVEMENT CARDS -->
+          <div
+            class="
+              divide-y
+              divide-stone-100
+              md:hidden
+            "
+          >
+            <article
+              v-for="movement in movements"
+              :key="movement.id"
+              :class="[
+                'p-4',
+                'transition-colors',
+                'duration-500',
+                ...getMovementFreshnessClass(
+                  movement.createdAt,
+                ),
+              ]"
+            >
+              <div
+                class="
+                  flex
+                  items-start
+                  justify-between
+                  gap-3
+                "
+              >
+                <div class="min-w-0">
+                  <p
+                    class="
+                      truncate
+                      text-base
+                      font-semibold
+                      text-stone-900
+                    "
+                  >
+                    {{ movement.productName }}
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-xs
+                      text-stone-500
+                    "
+                  >
+                    {{ movement.sku }}
+                  </p>
+                </div>
+
+                <div
+                  class="
+                    flex
+                    shrink-0
+                    flex-col
+                    items-end
+                    gap-1.5
+                  "
+                >
+                  <span
+                    v-if="
+                      isVeryFreshMovement(
+                        movement.createdAt,
+                      )
+                    "
+                    class="
+                      rounded-full
+                      border
+                      border-amber-300
+                      bg-amber-200
+                      px-2
+                      py-0.5
+                      text-[10px]
+                      font-bold
+                      uppercase
+                      tracking-[0.08em]
+                      text-amber-900
+                    "
+                  >
+                    New
+                  </span>
+
+                  <span
+                    class="
+                      inline-flex
+                      rounded-full
+                      px-2.5
+                      py-1
+                      text-xs
+                      font-medium
+                    "
+                    :class="
+                      movementClasses(
+                        movement.movementType,
+                      )
+                    "
+                  >
+                    {{
+                      movementLabel(
+                        movement.movementType,
+                      )
+                    }}
+                  </span>
+                </div>
+              </div>
+
+              <p
+                class="
+                  mt-3
+                  text-xs
+                  text-stone-500
+                "
+              >
+                {{
+                  formatDate(
+                    movement.createdAt,
+                  )
+                }}
+              </p>
+
+              <div
+                class="
+                  mt-4
+                  grid
+                  grid-cols-3
+                  gap-3
+                  border-t
+                  border-stone-100
+                  pt-4
+                "
+              >
+                <div>
+                  <p
+                    class="
+                      text-[10px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    On hand
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-base
+                      font-semibold
+                      text-stone-900
+                    "
+                  >
+                    {{
+                      formatDelta(
+                        movement.onHandDelta,
+                      )
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[10px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    Reserved
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-base
+                      font-medium
+                      text-stone-700
+                    "
+                  >
+                    {{
+                      formatDelta(
+                        movement.reservedDelta,
+                      )
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <p
+                    class="
+                      text-[10px]
+                      font-semibold
+                      uppercase
+                      tracking-widest
+                      text-stone-400
+                    "
+                  >
+                    After
+                  </p>
+
+                  <p
+                    class="
+                      mt-1
+                      text-base
+                      font-semibold
+                      text-stone-900
+                    "
+                  >
+                    {{
+                      formatQuantity(
+                        movement.onHandAfter,
+                      )
+                    }}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="
+                  mt-4
+                  border-t
+                  border-stone-100
+                  pt-3
+                "
+              >
+                <p
+                  v-if="movement.reference"
+                  class="
+                    text-sm
+                    font-medium
+                    text-stone-800
+                  "
+                >
+                  {{ movement.reference }}
+                </p>
+
+                <p
+                  v-if="movement.reason"
+                  class="
+                    mt-1
+                    text-sm
+                    leading-5
+                    text-stone-500
+                  "
+                >
+                  {{ movement.reason }}
+                </p>
+
+                <p
+                  v-if="
+                    !movement.reference
+                    && !movement.reason
+                  "
+                  class="
+                    text-sm
+                    text-stone-400
+                  "
+                >
+                  —
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <!-- DESKTOP MOVEMENT TABLE -->
+          <div
+            class="
+              hidden
+              overflow-x-auto
+              md:block
+            "
+            tabindex="0"
+            role="region"
+            aria-label="Inventory movement history, scroll horizontally for more columns"
+          >
           <table
             class="w-full text-left"
             style="min-width: 1050px"
@@ -1215,7 +1879,13 @@ function getApiErrorMessage(
               <tr
                 v-for="movement in movements"
                 :key="movement.id"
-                class="transition hover:bg-stone-50/70"
+                :class="[
+                  'transition-colors',
+                  'duration-500',
+                  ...getMovementFreshnessClass(
+                    movement.createdAt,
+                  ),
+                ]"
               >
                 <td
                   class="px-5 py-4 text-sm text-stone-500"

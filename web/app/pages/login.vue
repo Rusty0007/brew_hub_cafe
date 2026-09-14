@@ -38,8 +38,6 @@ const {
   showWarning,
 } = useAppModal()
 
-const errorMessage = ref('')
-
 const {
   $csrfFetch,
 } = useNuxtApp()
